@@ -221,6 +221,8 @@
               <div class="form-group"><label>TikTok</label><input id="c-tt" placeholder="@usuario"></div>
               <div class="form-group"><label>LinkedIn</label><input id="c-li" placeholder="linkedin.com/in/usuario"></div>
               <div class="form-group"><label>Sitio web</label><input id="c-web" placeholder="www.sitio.com"></div>
+              <div class="form-group"><label>Localidad</label><input id="c-loc" placeholder="Mar del Plata, Buenos Aires..."></div>
+              <div class="form-group"><label>País</label><input id="c-country" placeholder="Argentina"></div>
               <div class="form-group"><label>Canal preferido</label>
                 <select id="c-chan">
                   <option value="email">✉ Email</option>
@@ -241,7 +243,7 @@
               </button>
               <input id="csv-input" type="file" accept=".csv" style="display:none" onchange="importCSV(event)">
             </div>
-            <div style="font-size:11px;color:var(--hint);margin-top:10px">Formato CSV: <code style="font-family:'DM Mono';font-size:11px;color:var(--accent-light)">nombre, rubro, email, whatsapp, instagram, facebook, tiktok, linkedin, web, canal</code></div>
+            <div style="font-size:11px;color:var(--hint);margin-top:10px">Formato CSV: <code style="font-family:'DM Mono';font-size:11px;color:var(--accent-light)">nombre, rubro, email, whatsapp, instagram, facebook, tiktok, linkedin, web, localidad, pais, canal</code></div>
           </div>
         </div>
         <div class="card">
@@ -263,6 +265,7 @@
                 <option value="tiktok">🎵 TikTok</option>
                 <option value="linkedin">💼 LinkedIn</option>
               </select>
+              <input id="filter-loc" placeholder="Filtrar por localidad..." oninput="renderContacts()" style="max-width:180px">
             </div>
           </div>
           <table><thead><tr><th>Nombre</th><th>Rubro</th><th>Canal</th><th>Estado</th><th>Secuencia</th><th>Acciones</th></tr></thead>
@@ -602,6 +605,8 @@ function contactToAirtable(c) {
     'TikTok': c.tt || '',
     'LinkedIn': c.li || '',
     'Web': c.web || '',
+    'Localidad': c.loc || '',
+    'Pais': c.country || '',
     'Canal': c.channel || 'email',
     'Estado': c.status || 'nuevo',
     'Notas': c.notes || '',
@@ -622,6 +627,8 @@ function airtableToContact(rec) {
     tt: f['TikTok'] || '',
     li: f['LinkedIn'] || '',
     web: f['Web'] || '',
+    loc: f['Localidad'] || '',
+    country: f['Pais'] || '',
     channel: f['Canal'] || 'email',
     status: f['Estado'] || 'nuevo',
     notes: f['Notas'] || '',
@@ -666,7 +673,7 @@ async function sendToSheets(contact) {
         nombre: contact.name, rubro: contact.type, email: contact.email,
         whatsapp: contact.wa, instagram: contact.ig, facebook: contact.fb,
         tiktok: contact.tt, linkedin: contact.li, web: contact.web,
-        canal: contact.channel, estado: contact.status, notas: contact.notes
+        localidad: contact.loc, pais: contact.country, canal: contact.channel, estado: contact.status, notas: contact.notes
       })
     });
   } catch(e) { console.warn('Sheets error:', e.message); }
@@ -780,13 +787,14 @@ function renderContacts() {
   const q=(document.getElementById('search')||{}).value?.toLowerCase()||'';
   const sf=(document.getElementById('filter-status')||{}).value||'';
   const cf=(document.getElementById('filter-channel')||{}).value||'';
-  const list=contacts.filter(c=>(!q||(c.name||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q)||(c.type||'').toLowerCase().includes(q))&&(!sf||c.status===sf)&&(!cf||c.channel===cf));
+  const lf=(document.getElementById('filter-loc')||{}).value?.toLowerCase()||'';
+  const list=contacts.filter(c=>(!q||(c.name||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q)||(c.type||'').toLowerCase().includes(q))&&(!sf||c.status===sf)&&(!cf||c.channel===cf)&&(!lf||(c.loc||'').toLowerCase().includes(lf)||(c.country||'').toLowerCase().includes(lf)));
   const tb=document.getElementById('contacts-table');
   if(!tb)return;
   if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin contactos con ese filtro.</td></tr>';return;}
   tb.innerHTML=list.map(c=>{const ri=contacts.indexOf(c);return`<tr>
     <td><div class="td-name">${c.name||'—'}</div><div class="td-sub">${c.email||c.wa||''}</div></td>
-    <td style="color:var(--muted);font-size:12px">${c.type||'—'}</td>
+    <td style="color:var(--muted);font-size:12px"><div>${c.type||'—'}</div><div style="font-size:11px;color:var(--hint)">${c.loc?c.loc+(c.country?', '+c.country:''):c.country||''}</div></td>
     <td>${chanBadge(c.channel||'email')}</td><td>${statusBadge(c.status||'nuevo')}</td>
     <td>${c.status==='nuevo'?'<span style="color:var(--hint);font-size:12px">—</span>':progDots(c.status)}</td>
     <td><div style="display:flex;gap:6px">
@@ -800,7 +808,7 @@ function renderContacts() {
 async function addContact() {
   const name=document.getElementById('c-name').value.trim();
   if(!name){toast('Ingresá al menos el nombre',true);return;}
-  const c={name,type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),ig:document.getElementById('c-ig').value.trim(),fb:document.getElementById('c-fb').value.trim(),tt:document.getElementById('c-tt').value.trim(),li:document.getElementById('c-li').value.trim(),web:document.getElementById('c-web').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()};
+  const c={name,type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),ig:document.getElementById('c-ig').value.trim(),fb:document.getElementById('c-fb').value.trim(),tt:document.getElementById('c-tt').value.trim(),li:document.getElementById('c-li').value.trim(),web:document.getElementById('c-web').value.trim(),loc:document.getElementById('c-loc').value.trim(),country:document.getElementById('c-country').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()};
   
   // Guardar en Airtable si está configurado
   if (config.atToken && config.atBase && config.atTable) {
@@ -814,7 +822,7 @@ async function addContact() {
   }
   
   contacts.push(c);
-  ['c-name','c-type','c-email','c-wa','c-ig','c-fb','c-tt','c-li','c-web'].forEach(id=>document.getElementById(id).value='');
+  ['c-name','c-type','c-email','c-wa','c-ig','c-fb','c-tt','c-li','c-web','c-loc','c-country'].forEach(id=>document.getElementById(id).value='');
   saveContactsLocal(); renderContacts(); renderDashboard();
   toast('Contacto agregado' + (c._atId ? ' y sincronizado' : ''));
 }
@@ -829,7 +837,7 @@ function importCSV(e) {
       if(i===0&&line.toLowerCase().includes('nombre'))return;
       const p=line.split(',').map(x=>x.trim().replace(/^["']|["']$/g,''));
       if(!p[0])return;
-      newContacts.push({name:p[0],type:p[1]||'',email:p[2]||'',wa:p[3]||'',ig:p[4]||'',fb:p[5]||'',tt:p[6]||'',li:p[7]||'',web:p[8]||'',channel:p[9]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
+      newContacts.push({name:p[0],type:p[1]||'',email:p[2]||'',wa:p[3]||'',ig:p[4]||'',fb:p[5]||'',tt:p[6]||'',li:p[7]||'',web:p[8]||'',loc:p[9]||'',country:p[10]||'',channel:p[11]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
     });
     
     // Bulk create en Airtable si está configurado
@@ -879,7 +887,7 @@ async function updateContactRemote(i) {
 // ── Edit modal ──
 function openEdit(i) {
   editIdx=i; const c=contacts[i];
-  ['name','type','email','wa','ig','fb','tt','li','web'].forEach(f=>document.getElementById('e-'+f).value=c[f]||'');
+  ['name','type','email','wa','ig','fb','tt','li','web','loc','country'].forEach(f=>document.getElementById('e-'+f).value=c[f]||'');
   document.getElementById('e-chan').value=c.channel||'email';
   document.getElementById('e-status').value=c.status||'nuevo';
   document.getElementById('e-notes').value=c.notes||'';
@@ -889,7 +897,7 @@ function closeModal(){document.getElementById('edit-modal').classList.remove('op
 async function saveEdit() {
   if(editIdx<0)return; const c=contacts[editIdx];
   const prevStatus = c.status;
-  ['name','type','email','wa','ig','fb','tt','li','web'].forEach(f=>c[f]=document.getElementById('e-'+f).value);
+  ['name','type','email','wa','ig','fb','tt','li','web','loc','country'].forEach(f=>c[f]=document.getElementById('e-'+f).value);
   c.channel=document.getElementById('e-chan').value;
   c.status=document.getElementById('e-status').value;
   c.notes=document.getElementById('e-notes').value;
@@ -1093,8 +1101,8 @@ async function markAllSent(from,to){
 // ── Export ──
 function exportCSV(){
   if(!contacts.length){toast('No hay contactos',true);return;}
-  const header='nombre,rubro,email,whatsapp,instagram,facebook,tiktok,linkedin,web,canal,estado,notas,fecha';
-  const rows=contacts.map(c=>[c.name,c.type,c.email,c.wa,c.ig,c.fb,c.tt,c.li,c.web,c.channel,c.status,c.notes,c.createdAt].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const header='nombre,rubro,email,whatsapp,instagram,facebook,tiktok,linkedin,web,localidad,pais,canal,estado,notas,fecha';
+  const rows=contacts.map(c=>[c.name,c.type,c.email,c.wa,c.ig,c.fb,c.tt,c.li,c.web,c.loc,c.country,c.channel,c.status,c.notes,c.createdAt].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([[header,...rows].join('\n')],{type:'text/csv'}));
   a.download='outreach-'+new Date().toISOString().slice(0,10)+'.csv';
