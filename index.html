@@ -165,9 +165,9 @@
       <div class="lbl">Resend API</div>
       <span class="api-dot" id="api-dot"></span>
       <span id="api-status-text" style="font-size:12px;color:var(--muted)">No configurado</span>
-      <div class="lbl" style="margin-top:8px">Airtable</div>
+      <div class="lbl" style="margin-top:8px">Almacenamiento</div>
       <span class="api-dot" id="at-dot"></span>
-      <span id="at-status-text" style="font-size:12px;color:var(--muted)">No configurado</span>
+      <span id="at-status-text" style="font-size:12px;color:var(--muted)">Netlify Blobs</span>
     </div>
   </aside>
 
@@ -572,73 +572,48 @@ const defaultTpls = {
   }
 };
 
-// ── Airtable API ──
-async function atRequest(action, extra = {}) {
-  const res = await fetch('/.netlify/functions/airtable', {
+// ── Netlify Blobs Storage ──
+async function saveToCloud(contactsList) {
+  try {
+    const res = await fetch('/.netlify/functions/storage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'save', contacts: contactsList })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error guardando');
+    setSyncStatus('ok', 'Guardado en la nube');
+    return data;
+  } catch(e) {
+    setSyncStatus('err', 'Error al guardar');
+    console.warn('Storage error:', e.message);
+    throw e;
+  }
+}
+
+async function loadFromCloud() {
+  const res = await fetch('/.netlify/functions/storage', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, ...extra })
+    body: JSON.stringify({ action: 'load' })
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Error Airtable');
-  return data;
+  if (!res.ok) throw new Error(data.error || 'Error cargando');
+  return data.contacts || [];
 }
 
-function contactToAirtable(c) {
-  return {
-    'Nombre': c.name || '',
-    'Empresa': c.company || '',
-    'Rubro': c.type || '',
-    'Email': c.email || '',
-    'WhatsApp': c.wa || '',
-    'Instagram': c.ig || '',
-    'Facebook': c.fb || '',
-    'TikTok': c.tt || '',
-    'LinkedIn': c.li || '',
-    'Web': c.web || '',
-    'Localidad': c.loc || '',
-    'Pais': c.country || '',
-    'Canal': c.channel || 'email',
-    'Estado': c.status || 'nuevo',
-    'Notas': c.notes || '',
-    'FechaCreacion': c.createdAt || new Date().toISOString()
-  };
-}
-
-function airtableToContact(rec) {
-  const f = rec.fields;
-  return {
-    _atId: rec.id,
-    name: f['Nombre'] || '',
-    company: f['Empresa'] || '',
-    type: f['Rubro'] || '',
-    email: f['Email'] || '',
-    wa: f['WhatsApp'] || '',
-    ig: f['Instagram'] || '',
-    fb: f['Facebook'] || '',
-    tt: f['TikTok'] || '',
-    li: f['LinkedIn'] || '',
-    web: f['Web'] || '',
-    loc: f['Localidad'] || '',
-    country: f['Pais'] || '',
-    channel: f['Canal'] || 'email',
-    status: f['Estado'] || 'nuevo',
-    notes: f['Notas'] || '',
-    createdAt: f['FechaCreacion'] || new Date().toISOString()
-  };
-}
+// Airtable functions removed — using Netlify Blobs
 
 // ── Sync ──
 async function syncFromAirtable() {
-  // Keys en servidor — siempre disponible
-  setSyncStatus('syncing', 'Sincronizando...');
+  setSyncStatus('syncing', 'Cargando...');
   try {
-    const data = await atRequest('list');
-    contacts = (data.records || []).map(airtableToContact);
+    const cloudContacts = await loadFromCloud();
+    contacts = cloudContacts;
     saveContactsLocal();
     renderContacts(); renderDashboard(); updateNavCount();
-    setSyncStatus('ok', 'Sincronizado con Airtable');
-    toast(`${contacts.length} contactos cargados desde Airtable`);
+    setSyncStatus('ok', 'Sincronizado');
+    toast(`${contacts.length} contactos cargados`);
   } catch(e) {
     setSyncStatus('err', 'Error de sync');
     toast('Error sincronizando: ' + e.message, true);
@@ -670,18 +645,28 @@ async function sendToSheets(contact) {
 }
 
 // ── Init ──
-function loadData() {
-  try { const d = localStorage.getItem(STORE); if (d) contacts = JSON.parse(d); } catch(e){}
+async function loadData() {
   try { const d = localStorage.getItem(TPL_STORE); if (d) templates = JSON.parse(d); else templates = JSON.parse(JSON.stringify(defaultTpls)); } catch(e){ templates = JSON.parse(JSON.stringify(defaultTpls)); }
   try { const d = localStorage.getItem(CFG_STORE); if (d) config = {...config, ...JSON.parse(d)}; } catch(e){}
-  loadTemplateUI(); loadConfigUI();
-  renderContacts(); renderDashboard(); updateNavCount(); updateApiStatus();
-  if (config.atToken && config.atBase && config.atTable) {
-    setSyncStatus('ok', 'Airtable conectado');
+  loadTemplateUI(); loadConfigUI(); updateApiStatus();
+  setSyncStatus('syncing', 'Cargando...');
+  try {
+    contacts = await loadFromCloud();
+    saveContactsLocal(false); // guardar local sin re-sync
+  } catch(e) {
+    // fallback a localStorage
+    try { const d = localStorage.getItem(STORE); if (d) contacts = JSON.parse(d); } catch(e2){}
+    setSyncStatus('err', 'Sin conexión a nube');
   }
+  renderContacts(); renderDashboard(); updateNavCount();
+  setSyncStatus('ok', 'Listo');
 }
 
-function saveContactsLocal() { localStorage.setItem(STORE, JSON.stringify(contacts)); updateNavCount(); }
+function saveContactsLocal(syncCloud=true) {
+  localStorage.setItem(STORE, JSON.stringify(contacts));
+  updateNavCount();
+  if (syncCloud) saveToCloud(contacts).catch(e => console.warn('Cloud save failed:', e));
+}
 function saveTpls() { localStorage.setItem(TPL_STORE, JSON.stringify(templates)); }
 function saveCfg() { localStorage.setItem(CFG_STORE, JSON.stringify(config)); }
 
@@ -712,9 +697,8 @@ function updateApiStatus() {
   document.getElementById('resend-pill').textContent = '✓ En servidor';
   document.getElementById('resend-pill').className = 'status-pill configured';
   document.getElementById('at-dot').className = 'api-dot ok';
-  document.getElementById('at-status-text').textContent = 'En servidor Netlify';
-  document.getElementById('airtable-pill').textContent = '✓ En servidor';
-  document.getElementById('airtable-pill').className = 'status-pill configured';
+  document.getElementById('at-status-text').textContent = 'Netlify Blobs';
+  if(document.getElementById('airtable-pill')){document.getElementById('airtable-pill').textContent = '✓ Activo';document.getElementById('airtable-pill').className = 'status-pill configured';}
   const shOk = !!config.sheetsUrl;
   document.getElementById('sheets-pill').textContent = shOk ? '✓ Configurado' : 'No configurado';
   document.getElementById('sheets-pill').className = 'status-pill ' + (shOk?'configured':'missing');
@@ -799,15 +783,6 @@ async function addContact() {
   if(!name){toast('Ingresá al menos el nombre',true);return;}
   const c={name,company:document.getElementById('c-company').value.trim(),type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),ig:document.getElementById('c-ig').value.trim(),fb:document.getElementById('c-fb').value.trim(),tt:document.getElementById('c-tt').value.trim(),li:document.getElementById('c-li').value.trim(),web:document.getElementById('c-web').value.trim(),loc:document.getElementById('c-loc').value.trim(),country:document.getElementById('c-country').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()};
   
-  // Guardar en Airtable (keys en servidor)
-  try {
-    const rec = await atRequest('create', { record: contactToAirtable(c) });
-    c._atId = rec.id;
-    setSyncStatus('ok', 'Guardado en Airtable');
-  } catch(e) {
-    toast('Guardado local. Error Airtable: ' + e.message, true);
-  }
-  
   contacts.push(c);
   ['c-name','c-company','c-type','c-email','c-wa','c-ig','c-fb','c-tt','c-li','c-web','c-loc','c-country'].forEach(id=>document.getElementById(id).value='');
   saveContactsLocal(); renderContacts(); renderDashboard();
@@ -827,17 +802,6 @@ function importCSV(e) {
       newContacts.push({name:p[0],company:p[1]||'',type:p[2]||'',email:p[3]||'',wa:p[4]||'',ig:p[5]||'',fb:p[6]||'',tt:p[7]||'',li:p[8]||'',web:p[9]||'',loc:p[10]||'',country:p[11]||'',channel:p[12]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
     });
     
-    // Bulk create en Airtable (keys en servidor)
-    if (newContacts.length > 0) {
-      try {
-        const result = await atRequest('bulkCreate', { records: newContacts.map(contactToAirtable) });
-        result.records.forEach((rec, i) => { if(newContacts[i]) newContacts[i]._atId = rec.id; });
-        setSyncStatus('ok', 'Sincronizado con Airtable');
-      } catch(e) {
-        toast('Guardado local. Error Airtable: ' + e.message, true);
-      }
-    }
-    
     contacts = contacts.concat(newContacts);
     saveContactsLocal(); renderContacts(); renderDashboard();
     toast(newContacts.length + ' contactos importados');
@@ -847,29 +811,16 @@ function importCSV(e) {
 
 async function deleteContact(i) {
   if(!confirm('¿Eliminar "'+contacts[i].name+'"?'))return;
-  const c = contacts[i];
-  if (c._atId) {
-    try { await atRequest('delete', { recordId: c._atId }); } catch(e) {}
-  }
   contacts.splice(i,1); saveContactsLocal(); renderContacts(); renderDashboard(); toast('Contacto eliminado');
 }
 
 async function markReplied(i) {
   contacts[i].status='respondio';
-  await updateContactRemote(i);
   saveContactsLocal(); renderContacts(); renderDashboard();
   toast(contacts[i].name+' marcado como respondió');
 }
 
-async function updateContactRemote(i) {
-  const c = contacts[i];
-  if (c._atId) {
-    try {
-      await atRequest('update', { recordId: c._atId, record: contactToAirtable(c) });
-      setSyncStatus('ok', 'Sincronizado');
-    } catch(e) { setSyncStatus('err', 'Error sync'); }
-  }
-}
+// updateContactRemote removed — saveContactsLocal handles cloud sync
 
 // ── Edit modal ──
 function openEdit(i) {
@@ -895,7 +846,6 @@ async function saveEdit() {
     if (config.sheetsUrl) toast('Contacto archivado en Google Sheets');
   }
   
-  await updateContactRemote(editIdx);
   saveContactsLocal(); renderContacts(); renderDashboard(); closeModal(); toast('Contacto actualizado');
 }
 
@@ -1034,7 +984,6 @@ async function sendSingleEmail(localIdx){
     if(r.ok){
       resEl.innerHTML='<span class="send-result ok">✓ Enviado</span>';
       contacts[d.idx].status=d.nextStatus;
-      await updateContactRemote(d.idx);
       saveContactsLocal(); renderDashboard();
     }else{resEl.innerHTML=`<span class="send-result err">✗ ${escapeHtml(r.err)}</span>`;}
   }catch(e){resEl.innerHTML='<span class="send-result err">✗ Error de red</span>';}
@@ -1054,7 +1003,7 @@ async function sendAllEmails(){
       if(r.ok){
         if(resEl)resEl.innerHTML='<span class="send-result ok">✓ Enviado</span>';
         contacts[d.idx].status=d.nextStatus;
-        await updateContactRemote(d.idx); ok++;
+        ok++;
       }else{if(resEl)resEl.innerHTML=`<span class="send-result err">✗ ${escapeHtml(r.err)}</span>`;fail++;}
     }catch(e){if(resEl)resEl.innerHTML='<span class="send-result err">✗ Error</span>';fail++;}
     await new Promise(res=>setTimeout(res,350));
@@ -1069,7 +1018,6 @@ async function markAllSent(from,to){
   const toUpdate = contacts.filter(c => c.status === from);
   contacts.forEach(c=>{if(c.status===from)c.status=to;});
   // Actualizar en Airtable
-  for (const c of toUpdate) { const i = contacts.indexOf(c); if(i>=0) await updateContactRemote(i); }
   saveContactsLocal(); renderContacts(); renderDashboard();
   document.getElementById('messages-preview').innerHTML='';
   document.getElementById('btn-send-all').style.display='none';
