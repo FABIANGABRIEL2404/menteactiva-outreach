@@ -848,7 +848,7 @@ function importCSV(e) {
 async function deleteContact(i) {
   if(!confirm('¿Eliminar "'+contacts[i].name+'"?'))return;
   const c = contacts[i];
-  if (c._atId && config.atToken) {
+  if (c._atId) {
     try { await atRequest('delete', { recordId: c._atId }); } catch(e) {}
   }
   contacts.splice(i,1); saveContactsLocal(); renderContacts(); renderDashboard(); toast('Contacto eliminado');
@@ -863,7 +863,7 @@ async function markReplied(i) {
 
 async function updateContactRemote(i) {
   const c = contacts[i];
-  if (c._atId && config.atToken && config.atBase && config.atTable) {
+  if (c._atId) {
     try {
       await atRequest('update', { recordId: c._atId, record: contactToAirtable(c) });
       setSyncStatus('ok', 'Sincronizado');
@@ -979,7 +979,7 @@ function prepareMessages(){
   if(!filtered.length){prev.innerHTML='<div class="card"><div class="card-body"><p style="color:var(--muted);font-size:13px">No hay contactos con ese estado.</p></div></div>';btnSendAll.style.display='none';currentSendData=[];return;}
   const step=stepMap[sf]||1;
   currentSendData=[];
-  const hasKey=config.apiKey&&config.fromEmail;
+  const hasKey=true; // Keys en servidor
   let emailCount=0;
   let html=`<div class="card"><div class="card-header"><h3>${filtered.length} mensajes preparados — paso ${step} de 3</h3>
     <button class="btn btn-sm btn-ghost" onclick="markAllSent('${sf}','${nextStatus[sf]}')">
