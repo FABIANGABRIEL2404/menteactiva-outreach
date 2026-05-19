@@ -239,9 +239,15 @@
             <div class="toolbar">
               <input id="search" placeholder="Buscar..." oninput="renderContacts()">
               <select id="filter-status" onchange="renderContacts()">
-                <option value="">Todos</option><option value="nuevo">Nuevo</option><option value="enviado1">Enviado 1°</option>
+                <option value="">Todos los estados</option><option value="nuevo">Nuevo</option><option value="enviado1">Enviado 1°</option>
                 <option value="enviado2">Seguimiento 2°</option><option value="enviado3">Último 3°</option>
                 <option value="respondio">Respondió</option><option value="cerrado">Cerrado</option>
+              </select>
+              <select id="filter-channel" onchange="renderContacts()">
+                <option value="">Todos los canales</option>
+                <option value="email">✉ Email</option>
+                <option value="whatsapp">💬 WhatsApp</option>
+                <option value="instagram">📸 Instagram</option>
               </select>
             </div>
           </div>
@@ -746,7 +752,8 @@ function renderDashboard() {
 function renderContacts() {
   const q=(document.getElementById('search')||{}).value?.toLowerCase()||'';
   const sf=(document.getElementById('filter-status')||{}).value||'';
-  const list=contacts.filter(c=>(!q||(c.name||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q)||(c.type||'').toLowerCase().includes(q))&&(!sf||c.status===sf));
+  const cf=(document.getElementById('filter-channel')||{}).value||'';
+  const list=contacts.filter(c=>(!q||(c.name||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q)||(c.type||'').toLowerCase().includes(q))&&(!sf||c.status===sf)&&(!cf||c.channel===cf));
   const tb=document.getElementById('contacts-table');
   if(!tb)return;
   if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin contactos con ese filtro.</td></tr>';return;}
