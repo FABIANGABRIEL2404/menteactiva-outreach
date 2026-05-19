@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Outreach — MenteActiva</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f0f11;--surface:#18181c;--surface2:#222228;--border:#2e2e38;--border2:#3a3a48;
+    --text:#f0f0f4;--muted:#8888a0;--hint:#555568;
+    --accent:#7c6ff7;--accent-light:#a09af9;--accent-bg:#1e1c38;--accent-border:#534AB7;
+    --green:#4ade80;--green-bg:#0d2818;--green-border:#166534;
+    --amber:#fbbf24;--amber-bg:#2a1f08;
+    --red:#f87171;--red-bg:#2a0f0f;--red-border:#7f1d1d;
+    --blue:#60a5fa;--blue-bg:#0d1f38;
+    --pink:#f472b6;--pink-bg:#2a0f20;
+    --radius:10px;--radius-sm:6px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+  a{color:var(--accent-light);text-decoration:none}
+  .app{display:flex;min-height:100vh}
+
+  /* Sidebar */
+  .sidebar{width:230px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:3px}
+  .logo{font-size:15px;font-weight:600;color:var(--accent-light);padding:0 .5rem 1.25rem;border-bottom:1px solid var(--border);margin-bottom:.75rem;letter-spacing:-.3px}
+  .logo span{color:var(--muted);font-weight:400;font-size:11px;display:block;margin-top:2px}
+  .nav-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;width:100%;text-align:left;transition:all .15s}
+  .nav-btn:hover{background:var(--surface2);color:var(--text)}
+  .nav-btn.active{background:var(--accent-bg);color:var(--accent-light)}
+  .nav-btn svg{width:15px;height:15px;flex-shrink:0}
+  .nav-count{margin-left:auto;background:var(--accent-bg);color:var(--accent-light);font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+  .nav-sep{height:1px;background:var(--border);margin:8px 0}
+  .api-status{margin:auto 0 0;padding:10px 12px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px}
+  .api-status .lbl{color:var(--hint);margin-bottom:4px}
+  .api-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;background:var(--hint)}
+  .api-dot.ok{background:var(--green)}
+  .api-dot.err{background:var(--red)}
+
+  /* Main */
+  .main{flex:1;overflow:auto}
+  .topbar{padding:1.25rem 2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);position:sticky;top:0;z-index:10}
+  .topbar h1{font-size:17px;font-weight:600;letter-spacing:-.3px}
+  .topbar .actions{display:flex;gap:8px}
+  .content{padding:2rem}
+  .section{display:none}
+  .section.active{display:block}
+
+  /* Metrics */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:2rem}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+  .metric .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+  .metric .val{font-size:28px;font-weight:600;letter-spacing:-1px;line-height:1}
+  .metric .sub{font-size:11px;color:var(--hint);margin-top:6px}
+  .metric.accent{border-color:var(--accent)}
+  .metric.accent .val{color:var(--accent-light)}
+
+  /* Cards */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.5rem}
+  .card-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .card-header h3{font-size:14px;font-weight:500}
+  .card-body{padding:1.25rem}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .15s}
+  .btn:hover{background:var(--surface2)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn svg{width:14px;height:14px;flex-shrink:0}
+  .btn-primary{background:var(--accent-bg);border-color:var(--accent);color:var(--accent-light)}
+  .btn-primary:hover{background:#2a2660}
+  .btn-green{background:var(--green-bg);border-color:var(--green-border);color:var(--green)}
+  .btn-green:hover{background:#0f3820}
+  .btn-sm{padding:5px 10px;font-size:12px}
+  .btn-ghost{border-color:transparent}
+  .btn-ghost:hover{background:var(--surface2);border-color:var(--border)}
+  .btn-danger{border-color:var(--red-border);color:var(--red);background:transparent}
+  .btn-danger:hover{background:var(--red-bg)}
+
+  /* Badges */
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
+  .badge-nuevo{background:var(--surface2);color:var(--muted);border:1px solid var(--border2)}
+  .badge-enviado1{background:var(--blue-bg);color:var(--blue)}
+  .badge-enviado2{background:var(--amber-bg);color:var(--amber)}
+  .badge-enviado3{background:#2a1828;color:var(--pink)}
+  .badge-respondio{background:var(--green-bg);color:var(--green)}
+  .badge-cerrado{background:var(--surface2);color:var(--hint)}
+  .badge-email{background:var(--blue-bg);color:var(--blue)}
+  .badge-wa{background:var(--green-bg);color:var(--green)}
+  .badge-ig{background:var(--pink-bg);color:var(--pink)}
+
+  /* Table */
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.6px;padding:10px 12px;border-bottom:1px solid var(--border)}
+  td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,.015)}
+  .td-name{font-weight:500}
+  .td-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+  /* Form */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  input,select,textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;width:100%;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,111,247,.12)}
+  input.err{border-color:var(--red)}
+  textarea{resize:vertical;min-height:80px;line-height:1.6}
+  select option{background:var(--surface2)}
+
+  /* Progress */
+  .prog{display:flex;gap:5px;align-items:center}
+  .prog-dot{width:8px;height:8px;border-radius:50%}
+  .prog-dot.done{background:var(--green)}
+  .prog-dot.active{background:var(--accent-light)}
+  .prog-dot.pending{background:var(--border2)}
+
+  /* Channel tabs */
+  .ch-tabs{display:flex;gap:8px;margin-bottom:1.5rem}
+  .ch-tab{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .15s}
+  .ch-tab.active.email{background:var(--blue-bg);color:var(--blue);border-color:var(--blue)}
+  .ch-tab.active.wa{background:var(--green-bg);color:var(--green);border-color:var(--green)}
+  .ch-tab.active.ig{background:var(--pink-bg);color:var(--pink);border-color:var(--pink)}
+
+  /* Message blocks */
+  .step-block{margin-bottom:1.25rem}
+  .step-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:6px;font-weight:500}
+  .msg-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;font-size:13px;white-space:pre-wrap;line-height:1.7;font-family:'DM Mono',monospace;color:var(--text)}
+  .msg-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .msg-wrapper{border-bottom:1px solid var(--border);padding:1rem 0}
+  .msg-wrapper:last-child{border-bottom:none}
+
+  /* Send result per contact */
+  .send-result{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 8px;border-radius:20px}
+  .send-result.ok{background:var(--green-bg);color:var(--green)}
+  .send-result.err{background:var(--red-bg);color:var(--red)}
+  .send-result.sending{background:var(--accent-bg);color:var(--accent-light)}
+
+  /* Modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:1.75rem;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto}
+  .modal h3{font-size:16px;font-weight:600;margin-bottom:1.5rem;letter-spacing:-.3px}
+  .modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)}
+
+  /* Config section */
+  .config-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.5rem;overflow:hidden}
+  .config-card .head{padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .config-card .head .icon{width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px}
+  .config-card .head h3{font-size:14px;font-weight:500;flex:1}
+  .config-card .head .status-pill{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+  .status-pill.configured{background:var(--green-bg);color:var(--green)}
+  .status-pill.missing{background:var(--amber-bg);color:var(--amber)}
+  .config-card .body{padding:1.25rem}
+  .key-row{display:flex;gap:8px;align-items:center}
+  .key-row input{flex:1;font-family:'DM Mono',monospace;font-size:12px}
+  .hint{font-size:12px;color:var(--hint);margin-top:6px;line-height:1.6}
+  .hint a{color:var(--accent-light)}
+
+  /* Subject fields */
+  .subject-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .subject-row label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;white-space:nowrap;width:80px;flex-shrink:0}
+  .subject-row input{flex:1}
+
+  /* Progress bar for bulk send */
+  .progress-wrap{background:var(--surface2);border-radius:20px;height:6px;margin:12px 0;overflow:hidden}
+  .progress-bar{height:100%;background:var(--accent-light);border-radius:20px;transition:width .3s}
+
+  /* Toast */
+  .toast{position:fixed;bottom:2rem;right:2rem;background:var(--surface2);border:1px solid var(--green-border);color:var(--green);padding:10px 18px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;transform:translateY(10px);opacity:0;transition:all .25s;z-index:200;max-width:340px}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast.err{border-color:var(--red-border);color:var(--red)}
+
+  /* Toolbar */
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .toolbar input{max-width:220px}
+  .toolbar select{max-width:180px}
+
+  /* Empty */
+  .empty{padding:3rem 0;text-align:center;color:var(--muted);font-size:13px}
+
+  /* Info box */
+  .info-box{background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--accent-light);margin-bottom:1rem;line-height:1.6}
+  .warn-box{background:var(--amber-bg);border:1px solid #854F0B;border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--amber);margin-bottom:1rem;line-height:1.6}
+
+  /* Scrollbar */
+  ::-webkit-scrollbar{width:5px;height:5px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">Outreach Pro<span>by MenteActiva</span></div>
+    <button class="nav-btn active" onclick="goTo('dashboard',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Panel general
+    </button>
+    <button class="nav-btn" onclick="goTo('contacts',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Contactos
+      <span class="nav-count" id="nav-count">0</span>
+    </button>
+    <button class="nav-btn" onclick="goTo('templates',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Plantillas
+    </button>
+    <button class="nav-btn" onclick="goTo('send',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Enviar mensajes
+    </button>
+    <div class="nav-sep"></div>
+    <button class="nav-btn" onclick="goTo('config',this)">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Configuración
+    </button>
+    <div class="api-status" id="api-status-sidebar">
+      <div class="lbl">Resend API</div>
+      <span class="api-dot" id="api-dot"></span>
+      <span id="api-status-text" style="font-size:12px;color:var(--muted)">No configurado</span>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <h1 id="page-title">Panel general</h1>
+      <div class="actions">
+        <button class="btn btn-sm" onclick="exportCSV()">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar CSV
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="s-dashboard" class="section active">
+        <div class="metrics">
+          <div class="metric"><div class="label">Total contactos</div><div class="val" id="m-total">0</div><div class="sub">en la base</div></div>
+          <div class="metric"><div class="label">Emails enviados</div><div class="val" id="m-sent">0</div><div class="sub">todos los pasos</div></div>
+          <div class="metric accent"><div class="label">Respondieron</div><div class="val" id="m-reply">0</div><div class="sub" id="m-pct">0% de tasa</div></div>
+          <div class="metric"><div class="label">Pendientes acción</div><div class="val" id="m-pending">0</div><div class="sub">esperan seguimiento</div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Últimos contactos</h3><button class="btn btn-sm" onclick="goTo('contacts',null)">Ver todos</button></div>
+          <table><thead><tr><th>Nombre / empresa</th><th>Canal</th><th>Estado</th><th>Progreso</th><th></th></tr></thead>
+          <tbody id="dash-table"></tbody></table>
+        </div>
+      </div>
+
+      <!-- CONTACTOS -->
+      <div id="s-contacts" class="section">
+        <div class="card">
+          <div class="card-header"><h3>Agregar contacto</h3></div>
+          <div class="card-body">
+            <div class="form-grid" style="margin-bottom:14px">
+              <div class="form-group"><label>Nombre / empresa *</label><input id="c-name" placeholder="Ej: Farmacia Central"></div>
+              <div class="form-group"><label>Rubro</label><input id="c-type" placeholder="Comercio, Profesional, Empresa..."></div>
+              <div class="form-group"><label>Email</label><input id="c-email" type="email" placeholder="contacto@empresa.com"></div>
+              <div class="form-group"><label>WhatsApp</label><input id="c-wa" placeholder="+54 9 223 000 0000"></div>
+              <div class="form-group"><label>Instagram</label><input id="c-ig" placeholder="@usuario"></div>
+              <div class="form-group"><label>Canal preferido</label>
+                <select id="c-chan"><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option></select>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="addContact()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Agregar
+              </button>
+              <button class="btn" onclick="document.getElementById('csv-input').click()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Importar CSV
+              </button>
+              <input id="csv-input" type="file" accept=".csv" style="display:none" onchange="importCSV(event)">
+            </div>
+            <div style="font-size:11px;color:var(--hint);margin-top:10px">Formato CSV: <code style="font-family:'DM Mono';font-size:11px;color:var(--accent-light)">nombre, rubro, email, whatsapp, instagram, canal</code></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Base de contactos</h3>
+            <div class="toolbar">
+              <input id="search" placeholder="Buscar..." oninput="renderContacts()">
+              <select id="filter-status" onchange="renderContacts()">
+                <option value="">Todos</option><option value="nuevo">Nuevo</option><option value="enviado1">Enviado 1°</option>
+                <option value="enviado2">Seguimiento 2°</option><option value="enviado3">Último 3°</option>
+                <option value="respondio">Respondió</option><option value="cerrado">Cerrado</option>
+              </select>
+            </div>
+          </div>
+          <table><thead><tr><th>Nombre</th><th>Rubro</th><th>Canal</th><th>Estado</th><th>Secuencia</th><th>Acciones</th></tr></thead>
+          <tbody id="contacts-table"></tbody></table>
+        </div>
+      </div>
+
+      <!-- PLANTILLAS -->
+      <div id="s-templates" class="section">
+        <div class="card">
+          <div class="card-header"><h3>Plantillas de mensajes</h3></div>
+          <div class="card-body">
+            <div class="ch-tabs">
+              <button class="ch-tab email active" onclick="switchChan('email',this)">✉ Email</button>
+              <button class="ch-tab wa" onclick="switchChan('whatsapp',this)">💬 WhatsApp</button>
+              <button class="ch-tab ig" onclick="switchChan('instagram',this)">📸 Instagram DM</button>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:1.25rem">
+              Variables: <code style="font-family:'DM Mono';background:var(--surface2);padding:2px 6px;border-radius:4px">{nombre}</code>
+              <code style="font-family:'DM Mono';background:var(--surface2);padding:2px 6px;border-radius:4px">{empresa}</code>
+              <code style="font-family:'DM Mono';background:var(--surface2);padding:2px 6px;border-radius:4px">{rubro}</code>
+            </p>
+
+            <!-- Email templates con asuntos -->
+            <div id="tpl-email">
+              <div class="step-block">
+                <div class="step-label">1° mensaje — Presentación</div>
+                <div class="subject-row"><label>Asunto</label><input id="subj-email-1" placeholder="Ej: Una idea para {nombre}"></div>
+                <textarea id="t-email-1" rows="5"></textarea>
+              </div>
+              <div class="step-block">
+                <div class="step-label">2° mensaje — Seguimiento</div>
+                <div class="subject-row"><label>Asunto</label><input id="subj-email-2" placeholder="Ej: Re: Una idea para {nombre}"></div>
+                <textarea id="t-email-2" rows="5"></textarea>
+              </div>
+              <div class="step-block">
+                <div class="step-label">3° mensaje — Último intento</div>
+                <div class="subject-row"><label>Asunto</label><input id="subj-email-3" placeholder="Ej: Último mensaje — {nombre}"></div>
+                <textarea id="t-email-3" rows="5"></textarea>
+              </div>
+            </div>
+
+            <div id="tpl-whatsapp" style="display:none">
+              <div class="step-block"><div class="step-label">1° mensaje — Presentación</div><textarea id="t-wa-1" rows="4"></textarea></div>
+              <div class="step-block"><div class="step-label">2° mensaje — Seguimiento</div><textarea id="t-wa-2" rows="4"></textarea></div>
+              <div class="step-block"><div class="step-label">3° mensaje — Último intento</div><textarea id="t-wa-3" rows="4"></textarea></div>
+            </div>
+
+            <div id="tpl-instagram" style="display:none">
+              <div class="step-block"><div class="step-label">1° mensaje — DM inicial</div><textarea id="t-ig-1" rows="4"></textarea></div>
+              <div class="step-block"><div class="step-label">2° mensaje — Seguimiento DM</div><textarea id="t-ig-2" rows="4"></textarea></div>
+              <div class="step-block"><div class="step-label">3° mensaje — Último DM</div><textarea id="t-ig-3" rows="4"></textarea></div>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveTemplates()">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Guardar plantillas
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENVIAR -->
+      <div id="s-send" class="section">
+        <div id="send-no-key" class="warn-box" style="display:none">
+          ⚠️ No tenés la API Key de Resend configurada. Los mensajes se pueden preparar pero no enviar automáticamente. <a href="#" onclick="goTo('config',null)">Ir a Configuración →</a>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>Preparar y enviar mensajes</h3></div>
+          <div class="card-body">
+            <div class="form-grid" style="margin-bottom:1.25rem">
+              <div class="form-group"><label>Etapa a enviar</label>
+                <select id="send-filter">
+                  <option value="nuevo">Nuevos → 1° mensaje</option>
+                  <option value="enviado1">Sin respuesta al 1° → 2° mensaje</option>
+                  <option value="enviado2">Sin respuesta al 2° → 3° mensaje</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Canal</label>
+                <select id="send-chan">
+                  <option value="auto">Automático (canal preferido de cada uno)</option>
+                  <option value="email">Solo Email (vía Resend)</option>
+                  <option value="whatsapp">Solo WhatsApp (copiar manual)</option>
+                  <option value="instagram">Solo Instagram (copiar manual)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="prepareMessages()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>Generar mensajes
+              </button>
+              <button class="btn btn-green" id="btn-send-all" onclick="sendAllEmails()" style="display:none">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Enviar todos por email
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="messages-preview"></div>
+      </div>
+
+      <!-- CONFIGURACIÓN -->
+      <div id="s-config" class="section">
+
+        <div class="config-card">
+          <div class="head">
+            <div class="icon" style="background:var(--blue-bg)">📧</div>
+            <h3>Resend — Envío de emails</h3>
+            <span class="status-pill missing" id="resend-pill">No configurado</span>
+          </div>
+          <div class="body">
+            <div class="form-group" style="margin-bottom:14px">
+              <label>API Key de Resend</label>
+              <div class="key-row">
+                <input id="cfg-apikey" type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+                <button class="btn btn-sm" onclick="toggleKeyVisible()">
+                  <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" id="eye-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+                <button class="btn btn-primary btn-sm" onclick="saveConfig()">Guardar</button>
+              </div>
+              <div class="hint">
+                Conseguí tu API Key en <a href="https://resend.com/api-keys" target="_blank">resend.com/api-keys</a>. Formato: <code style="font-family:'DM Mono';font-size:11px">re_AbCdEfGh_1234567890</code>
+              </div>
+            </div>
+
+            <div class="form-grid" style="margin-bottom:14px">
+              <div class="form-group">
+                <label>Email remitente (From)</label>
+                <input id="cfg-from-email" placeholder="vos@tudominio.com">
+                <div class="hint">Debe estar verificado en Resend. Para pruebas usá <code style="font-size:11px">onboarding@resend.dev</code></div>
+              </div>
+              <div class="form-group">
+                <label>Nombre remitente</label>
+                <input id="cfg-from-name" placeholder="Tu Nombre — MenteActiva">
+              </div>
+            </div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+              <button class="btn btn-primary" onclick="saveConfig()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Guardar configuración
+              </button>
+              <button class="btn" onclick="testResend()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Probar conexión
+              </button>
+            </div>
+            <div id="test-result" style="font-size:13px;color:var(--muted)"></div>
+
+            <div style="border-top:1px solid var(--border);padding-top:1rem;margin-top:0.5rem">
+              <p style="font-size:12px;color:var(--hint);line-height:1.7">
+                ⚠️ La API Key se guarda en tu navegador (localStorage). No la compartás ni subas este archivo a un servidor público sin protegerlo con contraseña. Para uso personal en tu computadora es seguro.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="config-card">
+          <div class="head">
+            <div class="icon" style="background:var(--surface2)">💾</div>
+            <h3>Almacenamiento de datos</h3>
+            <span class="status-pill missing">localStorage (local)</span>
+          </div>
+          <div class="body">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.7">
+              Los contactos y plantillas se guardan en el navegador de esta computadora. Si limpiás la caché o abrís el panel en otro dispositivo, los datos no estarán disponibles.
+            </p>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.7">
+              <strong style="color:var(--text)">Próximo paso:</strong> conectar Google Sheets como respaldo automático en la nube. Gratuito, accesible desde cualquier dispositivo.
+            </p>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-sm" onclick="exportCSV()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar contactos (backup CSV)
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="clearAllData()">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>Borrar todos los datos
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /CONFIGURACIÓN -->
+
+    </div>
+  </main>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="modal-overlay">
+  <div class="modal">
+    <h3>Editar contacto</h3>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div class="form-group"><label>Nombre / empresa</label><input id="e-name"></div>
+      <div class="form-group"><label>Rubro</label><input id="e-type"></div>
+      <div class="form-group"><label>Email</label><input id="e-email" type="email"></div>
+      <div class="form-group"><label>WhatsApp</label><input id="e-wa"></div>
+      <div class="form-group"><label>Instagram</label><input id="e-ig"></div>
+      <div class="form-group"><label>Canal preferido</label>
+        <select id="e-chan"><option value="email">Email</option><option value="whatsapp">WhatsApp</option><option value="instagram">Instagram</option></select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1"><label>Estado</label>
+        <select id="e-status">
+          <option value="nuevo">Nuevo</option><option value="enviado1">Enviado 1°</option>
+          <option value="enviado2">Seguimiento 2°</option><option value="enviado3">Último 3°</option>
+          <option value="respondio">Respondió</option><option value="cerrado">Cerrado</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1"><label>Notas internas</label><textarea id="e-notes" rows="3" placeholder="Observaciones, próximos pasos..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const STORE = 'ma-contacts-v2';
+const TPL_STORE = 'ma-tpls-v2';
+const CFG_STORE = 'ma-config-v2';
+
+let contacts = [];
+let templates = {};
+let config = { apiKey:'', fromEmail:'', fromName:'' };
+let editIdx = -1;
+let currentSendData = []; // {contact, channel, step, msg, subject}
+
+const defaultTpls = {
+  email: {
+    subj: { 1:'Una idea para {nombre}', 2:'Re: Una idea para {nombre}', 3:'Último mensaje — {nombre}' },
+    1:`Hola {nombre},\n\nMi nombre es [Tu nombre] y trabajo en MenteActiva, especialistas en marketing digital e inteligencia artificial para negocios.\n\nVi que {empresa} está en el mercado del rubro {rubro} y creo que podemos ayudarles a atraer más clientes y optimizar sus procesos.\n\n¿Tienen 15 minutos esta semana para una charla sin compromiso?\n\nSaludos,\n[Tu nombre]\n[Teléfono] | menteactiva.com`,
+    2:`Hola {nombre},\n\nTe escribí la semana pasada sobre cómo podemos potenciar {empresa} con marketing digital e IA.\n\nEntiendo que el día a día es exigente, solo quería asegurarme que el mensaje llegó.\n\n¿Hay un mejor momento para hablar unos minutos?\n\nSaludos,\n[Tu nombre]`,
+    3:`Hola {nombre},\n\nÚltimo mensaje de mi parte, no quiero ser insistente.\n\nSi en algún momento {empresa} necesita apoyo con marketing digital, automatización o IA, podés contactarme cuando quieran.\n\n¡Mucho éxito!\n[Tu nombre]\n[Teléfono] | menteactiva.com`
+  },
+  whatsapp: {
+    1:`Hola {nombre}! Soy [Tu nombre] de MenteActiva, especialistas en marketing digital e IA. Vi que {empresa} podría beneficiarse de nuestros servicios. ¿Tienen unos minutos para contarles?`,
+    2:`Hola {nombre}, te escribí hace unos días sobre nuestros servicios para {empresa}. Solo quería asegurarme que recibiste el mensaje. Cualquier consulta, acá estoy.`,
+    3:`Hola {nombre}! Último mensaje de mi parte. Si en algún momento quieren potenciar {empresa}, escribime cuando quieran. Éxitos!`
+  },
+  instagram: {
+    1:`Hola {nombre}! Vi el perfil de {empresa} y me parece muy interesante. Trabajo en MenteActiva y creo que nuestros servicios de marketing digital e IA pueden ayudarlos. ¿Les interesa conversar?`,
+    2:`Hola de nuevo {nombre}! Solo quería asegurarme que vieron mi mensaje anterior sobre {empresa}. Quedamos a disposición.`,
+    3:`Hola {nombre}! Último mensaje de mi parte. Si en algún momento quieren hablar sobre marketing para {empresa}, acá estamos. Éxitos!`
+  }
+};
+
+// ── Init ──
+function loadData() {
+  try { const d = localStorage.getItem(STORE); if (d) contacts = JSON.parse(d); } catch(e){}
+  try { const d = localStorage.getItem(TPL_STORE); if (d) templates = JSON.parse(d); else templates = JSON.parse(JSON.stringify(defaultTpls)); } catch(e){ templates = JSON.parse(JSON.stringify(defaultTpls)); }
+  try { const d = localStorage.getItem(CFG_STORE); if (d) config = {...config, ...JSON.parse(d)}; } catch(e){}
+  loadTemplateUI();
+  loadConfigUI();
+  renderContacts();
+  renderDashboard();
+  updateNavCount();
+  updateApiStatus();
+}
+
+function saveContacts() { localStorage.setItem(STORE, JSON.stringify(contacts)); updateNavCount(); }
+function saveTpls() { localStorage.setItem(TPL_STORE, JSON.stringify(templates)); }
+function saveCfg() { localStorage.setItem(CFG_STORE, JSON.stringify(config)); }
+
+// ── Toast ──
+function toast(msg, err=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (err ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── Nav ──
+const titles = { dashboard:'Panel general', contacts:'Contactos', templates:'Plantillas de mensajes', send:'Enviar mensajes', config:'Configuración' };
+function goTo(s, btn) {
+  document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(x => x.classList.remove('active'));
+  document.getElementById('s-' + s).classList.add('active');
+  document.getElementById('page-title').textContent = titles[s]||s;
+  if (btn) btn.classList.add('active');
+  else document.querySelectorAll('.nav-btn').forEach(b => { if ((b.getAttribute('onclick')||'').includes("'"+s+"'")) b.classList.add('active'); });
+  if (s === 'dashboard') renderDashboard();
+  if (s === 'send') checkSendKey();
+}
+
+function updateNavCount() { document.getElementById('nav-count').textContent = contacts.length; }
+
+function updateApiStatus() {
+  const ok = config.apiKey && config.fromEmail;
+  document.getElementById('api-dot').className = 'api-dot ' + (ok ? 'ok' : 'err');
+  document.getElementById('api-status-text').textContent = ok ? config.fromEmail : 'No configurado';
+  document.getElementById('resend-pill').textContent = ok ? '✓ Configurado' : 'No configurado';
+  document.getElementById('resend-pill').className = 'status-pill ' + (ok ? 'configured' : 'missing');
+}
+
+function checkSendKey() {
+  const box = document.getElementById('send-no-key');
+  box.style.display = (config.apiKey && config.fromEmail) ? 'none' : 'block';
+}
+
+// ── Badges ──
+function statusBadge(s) {
+  const m = {nuevo:'badge-nuevo',enviado1:'badge-enviado1',enviado2:'badge-enviado2',enviado3:'badge-enviado3',respondio:'badge-respondio',cerrado:'badge-cerrado'};
+  const l = {nuevo:'Nuevo',enviado1:'Enviado 1°',enviado2:'Seguimiento 2°',enviado3:'Último 3°',respondio:'Respondió ✓',cerrado:'Cerrado'};
+  return `<span class="badge ${m[s]||'badge-nuevo'}">${l[s]||s}</span>`;
+}
+function chanBadge(c) {
+  if (c==='email') return '<span class="badge badge-email">✉ Email</span>';
+  if (c==='whatsapp') return '<span class="badge badge-wa">💬 WhatsApp</span>';
+  return '<span class="badge badge-ig">📸 Instagram</span>';
+}
+function progDots(st) {
+  const steps=['enviado1','enviado2','enviado3'];
+  const idx=steps.indexOf(st);
+  return '<div class="prog">'+steps.map((s,i)=>{
+    let c='pending';
+    if(st==='respondio'||st==='cerrado')c='done';
+    else if(i<idx)c='done';
+    else if(i===idx)c='active';
+    return `<div class="prog-dot ${c}" title="Paso ${i+1}"></div>`;
+  }).join('')+'</div>';
+}
+
+// ── Dashboard ──
+function renderDashboard() {
+  const total=contacts.length;
+  const sent=contacts.filter(c=>['enviado1','enviado2','enviado3','respondio'].includes(c.status)).length;
+  const reply=contacts.filter(c=>c.status==='respondio').length;
+  const pending=contacts.filter(c=>['enviado1','enviado2'].includes(c.status)).length;
+  document.getElementById('m-total').textContent=total;
+  document.getElementById('m-sent').textContent=sent;
+  document.getElementById('m-reply').textContent=reply;
+  document.getElementById('m-pct').textContent=sent?Math.round(reply/sent*100)+'% de tasa':'0% de tasa';
+  document.getElementById('m-pending').textContent=pending;
+  const tb=document.getElementById('dash-table');
+  const recent=[...contacts].reverse().slice(0,6);
+  if(!recent.length){tb.innerHTML='<tr><td colspan="5" class="empty">Sin contactos. <a href="#" onclick="goTo(\'contacts\',null)">Agregar uno</a></td></tr>';return;}
+  tb.innerHTML=recent.map(c=>{const ri=contacts.indexOf(c);return`<tr>
+    <td><div class="td-name">${c.name||'—'}</div><div class="td-sub">${c.type||''}</div></td>
+    <td>${chanBadge(c.channel||'email')}</td>
+    <td>${statusBadge(c.status||'nuevo')}</td>
+    <td>${c.status==='nuevo'?'<span style="color:var(--hint);font-size:12px">sin envíos</span>':progDots(c.status)}</td>
+    <td><button class="btn btn-sm btn-ghost" onclick="openEdit(${ri})"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editar</button></td>
+  </tr>`;}).join('');
+}
+
+// ── Contacts ──
+function renderContacts() {
+  const q=(document.getElementById('search')||{}).value?.toLowerCase()||'';
+  const sf=(document.getElementById('filter-status')||{}).value||'';
+  const list=contacts.filter(c=>(!q||(c.name||'').toLowerCase().includes(q)||(c.email||'').toLowerCase().includes(q)||(c.type||'').toLowerCase().includes(q))&&(!sf||c.status===sf));
+  const tb=document.getElementById('contacts-table');
+  if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin contactos con ese filtro.</td></tr>';return;}
+  tb.innerHTML=list.map(c=>{const ri=contacts.indexOf(c);return`<tr>
+    <td><div class="td-name">${c.name||'—'}</div><div class="td-sub">${c.email||c.wa||''}</div></td>
+    <td style="color:var(--muted);font-size:12px">${c.type||'—'}</td>
+    <td>${chanBadge(c.channel||'email')}</td>
+    <td>${statusBadge(c.status||'nuevo')}</td>
+    <td>${c.status==='nuevo'?'<span style="color:var(--hint);font-size:12px">—</span>':progDots(c.status)}</td>
+    <td><div style="display:flex;gap:6px">
+      <button class="btn btn-sm btn-ghost" onclick="openEdit(${ri})" title="Editar"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="btn btn-sm btn-ghost" onclick="markReplied(${ri})" title="Marcó respondió" style="color:var(--green)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg></button>
+      <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteContact(${ri})" title="Eliminar"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
+    </div></td>
+  </tr>`;}).join('');
+}
+
+function addContact() {
+  const name=document.getElementById('c-name').value.trim();
+  if(!name){toast('Ingresá al menos el nombre',true);return;}
+  contacts.push({name,type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),ig:document.getElementById('c-ig').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()});
+  ['c-name','c-type','c-email','c-wa','c-ig'].forEach(id=>document.getElementById(id).value='');
+  saveContacts();renderContacts();renderDashboard();toast('Contacto agregado');
+}
+
+function importCSV(e) {
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const lines=ev.target.result.split('\n').filter(l=>l.trim());
+    let added=0;
+    lines.forEach((line,i)=>{
+      if(i===0&&line.toLowerCase().includes('nombre'))return;
+      const p=line.split(',').map(x=>x.trim().replace(/^["']|["']$/g,''));
+      if(!p[0])return;
+      contacts.push({name:p[0],type:p[1]||'',email:p[2]||'',wa:p[3]||'',ig:p[4]||'',channel:p[5]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
+      added++;
+    });
+    saveContacts();renderContacts();renderDashboard();
+    toast(added+' contactos importados');
+  };
+  r.readAsText(file);e.target.value='';
+}
+
+function deleteContact(i){if(!confirm('¿Eliminar "'+contacts[i].name+'"?'))return;contacts.splice(i,1);saveContacts();renderContacts();renderDashboard();toast('Contacto eliminado');}
+function markReplied(i){contacts[i].status='respondio';saveContacts();renderContacts();renderDashboard();toast(contacts[i].name+' marcado como respondió');}
+
+// ── Edit modal ──
+function openEdit(i){
+  editIdx=i;const c=contacts[i];
+  ['name','type','email','wa','ig'].forEach(f=>document.getElementById('e-'+f).value=c[f]||'');
+  document.getElementById('e-chan').value=c.channel||'email';
+  document.getElementById('e-status').value=c.status||'nuevo';
+  document.getElementById('e-notes').value=c.notes||'';
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('edit-modal').classList.remove('open');editIdx=-1;}
+function saveEdit(){
+  if(editIdx<0)return;const c=contacts[editIdx];
+  ['name','type','email','wa','ig'].forEach(f=>c[f]=document.getElementById('e-'+f).value);
+  c.channel=document.getElementById('e-chan').value;
+  c.status=document.getElementById('e-status').value;
+  c.notes=document.getElementById('e-notes').value;
+  saveContacts();renderContacts();renderDashboard();closeModal();toast('Contacto actualizado');
+}
+
+// ── Templates ──
+function switchChan(ch,btn){
+  document.querySelectorAll('.ch-tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
+  ['email','whatsapp','instagram'].forEach(c=>document.getElementById('tpl-'+c).style.display=c===ch?'block':'none');
+}
+function loadTemplateUI(){
+  const m={email:'email',whatsapp:'wa',instagram:'ig'};
+  ['email','whatsapp','instagram'].forEach(ch=>{
+    [1,2,3].forEach(n=>{
+      const el=document.getElementById('t-'+m[ch]+'-'+n);
+      if(el&&templates[ch]&&templates[ch][n])el.value=templates[ch][n];
+    });
+    // asuntos solo para email
+    if(ch==='email'){[1,2,3].forEach(n=>{const el=document.getElementById('subj-email-'+n);if(el&&templates.email?.subj?.[n])el.value=templates.email.subj[n];});}
+  });
+}
+function saveTemplates(){
+  const m={email:'email',whatsapp:'wa',instagram:'ig'};
+  ['email','whatsapp','instagram'].forEach(ch=>{
+    [1,2,3].forEach(n=>{const el=document.getElementById('t-'+m[ch]+'-'+n);if(el){if(!templates[ch])templates[ch]={};templates[ch][n]=el.value;}});
+    if(ch==='email'){if(!templates.email.subj)templates.email.subj={};[1,2,3].forEach(n=>{const el=document.getElementById('subj-email-'+n);if(el)templates.email.subj[n]=el.value;});}
+  });
+  saveTpls();toast('Plantillas guardadas');
+}
+
+// ── Config ──
+function loadConfigUI(){
+  document.getElementById('cfg-apikey').value=config.apiKey||'';
+  document.getElementById('cfg-from-email').value=config.fromEmail||'';
+  document.getElementById('cfg-from-name').value=config.fromName||'';
+}
+function saveConfig(){
+  config.apiKey=document.getElementById('cfg-apikey').value.trim();
+  config.fromEmail=document.getElementById('cfg-from-email').value.trim();
+  config.fromName=document.getElementById('cfg-from-name').value.trim();
+  saveCfg();updateApiStatus();toast('Configuración guardada');
+}
+function toggleKeyVisible(){
+  const inp=document.getElementById('cfg-apikey');
+  inp.type=inp.type==='password'?'text':'password';
+}
+
+async function testResend(){
+  const r=document.getElementById('test-result');
+  if(!config.apiKey){r.innerHTML='<span style="color:var(--red)">✗ Primero guardá la API Key</span>';return;}
+  if(!config.fromEmail){r.innerHTML='<span style="color:var(--red)">✗ Completá el email remitente</span>';return;}
+  r.innerHTML='<span style="color:var(--accent-light)">Probando conexión...</span>';
+  try {
+    const res=await fetch('/.netlify/functions/send-email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        apiKey: config.apiKey,
+        from:`${config.fromName||'Outreach Panel'} <${config.fromEmail}>`,
+        to:[config.fromEmail],
+        subject:'✓ Prueba de conexión — Outreach Panel',
+        text:'Conexión con Resend funcionando correctamente desde tu Panel de Outreach.'
+      })
+    });
+    const data=await res.json();
+    if(res.ok){r.innerHTML='<span style="color:var(--green)">✓ Conexión exitosa — Email de prueba enviado a '+config.fromEmail+'</span>';toast('Resend conectado correctamente');}
+    else{r.innerHTML='<span style="color:var(--red)">✗ Error: '+escapeHtml(data.message||JSON.stringify(data))+'</span>';}
+  }catch(e){r.innerHTML='<span style="color:var(--red)">✗ Error de red: '+e.message+'</span>';}
+}
+
+// ── Fill template ──
+function fillTpl(tpl,c){return(tpl||'').replace(/{nombre}/g,c.name||'').replace(/{empresa}/g,c.name||'').replace(/{rubro}/g,c.type||'');}
+
+// ── Prepare messages ──
+function prepareMessages(){
+  const sf=document.getElementById('send-filter').value;
+  const sch=document.getElementById('send-chan').value;
+  const stepMap={nuevo:1,enviado1:2,enviado2:3};
+  const nextStatus={nuevo:'enviado1',enviado1:'enviado2',enviado2:'enviado3'};
+  const filtered=contacts.filter(c=>c.status===sf);
+  const prev=document.getElementById('messages-preview');
+  const btnSendAll=document.getElementById('btn-send-all');
+
+  if(!filtered.length){
+    prev.innerHTML='<div class="card"><div class="card-body"><p style="color:var(--muted);font-size:13px">No hay contactos con ese estado.</p></div></div>';
+    btnSendAll.style.display='none';currentSendData=[];return;
+  }
+  const step=stepMap[sf]||1;
+  currentSendData=[];
+  const hasKey=config.apiKey&&config.fromEmail;
+
+  let emailCount=0;
+  let html=`<div class="card"><div class="card-header">
+    <h3>${filtered.length} mensajes preparados — paso ${step} de 3</h3>
+    <button class="btn btn-sm btn-ghost" onclick="markAllSent('${sf}','${nextStatus[sf]}')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>Marcar todos como enviados
+    </button>
+  </div><div class="card-body">`;
+
+  filtered.forEach((c,i)=>{
+    const ch=sch==='auto'?(c.channel||'email'):sch;
+    const tplKey=ch==='whatsapp'?'whatsapp':ch==='instagram'?'instagram':'email';
+    const msg=fillTpl((templates[tplKey]||{})[step]||'',c);
+    const subj=ch==='email'?fillTpl((templates.email?.subj||{})[step]||'Contacto de MenteActiva',c):'';
+    const dest=ch==='email'?c.email:ch==='whatsapp'?c.wa:c.ig;
+    if(ch==='email')emailCount++;
+    currentSendData.push({idx:contacts.indexOf(c),contact:c,channel:ch,step,msg,subject:subj,dest,nextStatus:nextStatus[sf]});
+
+    html+=`<div class="msg-wrapper" id="wrap-${i}">
+      <div class="msg-header">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          ${chanBadge(ch)}
+          <strong style="font-size:13px">${c.name}</strong>
+          <span style="font-size:12px;color:var(--muted)">${dest||'(sin dato)'}</span>
+          ${ch==='email'&&subj?`<span style="font-size:11px;color:var(--hint)">Asunto: ${escapeHtml(subj)}</span>`:''}
+          <span id="result-${i}"></span>
+        </div>
+        <div style="display:flex;gap:6px">
+          ${ch==='email'&&hasKey?`<button class="btn btn-sm btn-green" onclick="sendSingleEmail(${i})"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Enviar</button>`:''}
+          <button class="btn btn-sm" onclick="copyMsg('msg-${i}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</button>
+        </div>
+      </div>
+      <div id="msg-${i}" class="msg-preview">${escapeHtml(msg)}</div>
+    </div>`;
+  });
+  html+='</div></div>';
+  prev.innerHTML=html;
+
+  if(emailCount>0&&hasKey){btnSendAll.style.display='flex';btnSendAll.textContent='';btnSendAll.innerHTML=`<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Enviar todos los emails (${emailCount})`;
+  }else{btnSendAll.style.display='none';}
+}
+
+// ── Send via Resend (usando Netlify Function como intermediario) ──
+async function sendViaResend(toEmail, toName, subject, body){
+  const fromLine=`${config.fromName||'MenteActiva'} <${config.fromEmail}>`;
+  const htmlBody=`<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:#222;max-width:560px">${body.replace(/\n/g,'<br>')}</div>`;
+  const res=await fetch('/.netlify/functions/send-email',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      apiKey: config.apiKey,
+      from: fromLine,
+      to: [toEmail],
+      subject,
+      text: body,
+      html: htmlBody
+    })
+  });
+  const data=await res.json();
+  return res.ok?{ok:true,id:data.id}:{ok:false,err:data.message||'Error desconocido'};
+}
+
+async function sendSingleEmail(localIdx){
+  const d=currentSendData[localIdx];
+  if(!d||d.channel!=='email'){toast('Este contacto no usa email',true);return;}
+  if(!d.dest){toast('El contacto no tiene email cargado',true);return;}
+  const resEl=document.getElementById('result-'+localIdx);
+  resEl.innerHTML='<span class="send-result sending">Enviando...</span>';
+  try{
+    const r=await sendViaResend(d.dest,d.contact.name,d.subject,d.msg);
+    if(r.ok){
+      resEl.innerHTML='<span class="send-result ok">✓ Enviado</span>';
+      contacts[d.idx].status=d.nextStatus;
+      saveContacts();renderDashboard();
+    }else{resEl.innerHTML=`<span class="send-result err">✗ ${escapeHtml(r.err)}</span>`;}
+  }catch(e){resEl.innerHTML=`<span class="send-result err">✗ Error de red</span>`;}
+}
+
+async function sendAllEmails(){
+  const emailItems=currentSendData.filter(d=>d.channel==='email'&&d.dest);
+  if(!emailItems.length){toast('No hay emails válidos para enviar',true);return;}
+  const btn=document.getElementById('btn-send-all');
+  btn.disabled=true;
+  let ok=0,fail=0;
+  for(let i=0;i<currentSendData.length;i++){
+    const d=currentSendData[i];
+    if(d.channel!=='email'||!d.dest)continue;
+    const resEl=document.getElementById('result-'+i);
+    if(resEl)resEl.innerHTML='<span class="send-result sending">Enviando...</span>';
+    try{
+      const r=await sendViaResend(d.dest,d.contact.name,d.subject,d.msg);
+      if(r.ok){
+        if(resEl)resEl.innerHTML='<span class="send-result ok">✓ Enviado</span>';
+        contacts[d.idx].status=d.nextStatus;ok++;
+      }else{
+        if(resEl)resEl.innerHTML=`<span class="send-result err">✗ ${escapeHtml(r.err)}</span>`;fail++;
+      }
+    }catch(e){if(resEl)resEl.innerHTML='<span class="send-result err">✗ Error</span>';fail++;}
+    await new Promise(res=>setTimeout(res,300)); // rate limit: 300ms entre envíos
+  }
+  saveContacts();renderDashboard();
+  btn.disabled=false;
+  toast(`${ok} enviados${fail?', '+fail+' con error':''}`, fail>0);
+}
+
+function copyMsg(id){
+  const el=document.getElementById(id);
+  navigator.clipboard.writeText(el.textContent).then(()=>toast('Copiado al portapapeles'));
+}
+
+function markAllSent(from,to){
+  contacts.forEach(c=>{if(c.status===from)c.status=to;});
+  saveContacts();renderContacts();renderDashboard();
+  document.getElementById('messages-preview').innerHTML='';
+  document.getElementById('btn-send-all').style.display='none';
+  currentSendData=[];
+  toast('Estados actualizados');
+}
+
+// ── Export ──
+function exportCSV(){
+  if(!contacts.length){toast('No hay contactos',true);return;}
+  const header='nombre,rubro,email,whatsapp,instagram,canal,estado,notas,fecha';
+  const rows=contacts.map(c=>[c.name,c.type,c.email,c.wa,c.ig,c.channel,c.status,c.notes,c.createdAt].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([[header,...rows].join('\n')],{type:'text/csv'}));
+  a.download='outreach-'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();toast('CSV exportado');
+}
+
+function clearAllData(){
+  if(!confirm('⚠️ Esto borra TODOS los contactos y plantillas. ¿Estás seguro?'))return;
+  if(!confirm('Última confirmación: se borrarán '+contacts.length+' contactos. ¿Continuar?'))return;
+  localStorage.removeItem(STORE);localStorage.removeItem(TPL_STORE);
+  contacts=[];templates=JSON.parse(JSON.stringify(defaultTpls));
+  loadTemplateUI();renderContacts();renderDashboard();updateNavCount();
+  toast('Todos los datos borrados');
+}
+
+// ── Helpers ──
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+loadData();
+</script>
+</body>
+</html>
