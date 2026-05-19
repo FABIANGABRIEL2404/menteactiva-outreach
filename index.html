@@ -407,41 +407,17 @@
           <div class="head">
             <div class="icon" style="background:#1a1a2e">🗄️</div>
             <h3>Airtable — Base de datos en la nube</h3>
-            <span class="status-pill missing" id="airtable-pill">No configurado</span>
+            <span class="status-pill configured" id="airtable-pill">✓ En servidor</span>
           </div>
           <div class="body">
-            <div class="form-grid" style="margin-bottom:14px">
-              <div class="form-group">
-                <label>Personal Access Token</label>
-                <div class="key-row">
-                  <input id="cfg-at-token" type="password" placeholder="patXXXXXXXXXXXXXX" autocomplete="off">
-                  <button class="btn btn-sm" onclick="toggleKeyVisible('cfg-at-token','eye-at')">
-                    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" id="eye-at"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                </div>
-                <div class="hint">Creá el token en <a href="https://airtable.com/create/tokens" target="_blank">airtable.com/create/tokens</a></div>
-              </div>
-              <div class="form-group">
-                <label>Base ID</label>
-                <input id="cfg-at-base" placeholder="appXXXXXXXXXXXXXX">
-                <div class="hint">Lo ves en la URL de tu base: airtable.com/<strong>appXXX</strong>/tbl...</div>
-              </div>
-              <div class="form-group">
-                <label>Table ID</label>
-                <input id="cfg-at-table" placeholder="tblXXXXXXXXXXXXXX">
-                <div class="hint">También en la URL: airtable.com/appXXX/<strong>tblXXX</strong>/...</div>
-              </div>
-            </div>
+            <div class="info-box">🔒 El token y los IDs de Airtable están guardados de forma segura en el servidor de Netlify.</div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-              <button class="btn btn-primary" onclick="saveConfig()">
-                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Guardar
-              </button>
               <button class="btn" onclick="testAirtable()">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Probar conexión
               </button>
               <button class="btn btn-green" onclick="syncFromAirtable()">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                Importar desde Airtable
+                Sincronizar desde Airtable
               </button>
             </div>
             <div id="at-test-result" style="font-size:13px;color:var(--muted)"></div>
@@ -560,7 +536,7 @@ const CFG_STORE = 'ma-config-v3';
 
 let contacts = [];
 let templates = {};
-let config = { apiKey:'', fromEmail:'', fromName:'', atToken:'', atBase:'', atTable:'', sheetsUrl:'' };
+let config = { fromEmail:'', fromName:'', sheetsUrl:'' };
 let editIdx = -1;
 let currentSendData = [];
 
@@ -585,11 +561,10 @@ const defaultTpls = {
 
 // ── Airtable API ──
 async function atRequest(action, extra = {}) {
-  if (!config.atToken || !config.atBase || !config.atTable) throw new Error('Airtable no configurado');
   const res = await fetch('/.netlify/functions/airtable', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, apiKey: config.atToken, baseId: config.atBase, tableId: config.atTable, ...extra })
+    body: JSON.stringify({ action, ...extra })
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Error Airtable');
@@ -642,9 +617,7 @@ function airtableToContact(rec) {
 
 // ── Sync ──
 async function syncFromAirtable() {
-  if (!config.atToken || !config.atBase || !config.atTable) {
-    toast('Configurá Airtable primero', true); goTo('config', null); return;
-  }
+  // Keys en servidor — siempre disponible
   setSyncStatus('syncing', 'Sincronizando...');
   try {
     const data = await atRequest('list');
@@ -720,22 +693,21 @@ function goTo(s, btn) {
 }
 function updateNavCount() { document.getElementById('nav-count').textContent = contacts.length; }
 function updateApiStatus() {
-  const ok = config.apiKey && config.fromEmail;
-  document.getElementById('api-dot').className = 'api-dot ' + (ok?'ok':'err');
-  document.getElementById('api-status-text').textContent = ok ? config.fromEmail : 'No configurado';
-  document.getElementById('resend-pill').textContent = ok ? '✓ Configurado' : 'No configurado';
-  document.getElementById('resend-pill').className = 'status-pill ' + (ok?'configured':'missing');
-  const atOk = config.atToken && config.atBase && config.atTable;
-  document.getElementById('at-dot').className = 'api-dot ' + (atOk?'ok':'err');
-  document.getElementById('at-status-text').textContent = atOk ? 'Conectado' : 'No configurado';
-  document.getElementById('airtable-pill').textContent = atOk ? '✓ Configurado' : 'No configurado';
-  document.getElementById('airtable-pill').className = 'status-pill ' + (atOk?'configured':'missing');
+  // Keys en servidor — siempre verde si el panel cargó
+  document.getElementById('api-dot').className = 'api-dot ok';
+  document.getElementById('api-status-text').textContent = 'Keys en servidor Netlify';
+  document.getElementById('resend-pill').textContent = '✓ En servidor';
+  document.getElementById('resend-pill').className = 'status-pill configured';
+  document.getElementById('at-dot').className = 'api-dot ok';
+  document.getElementById('at-status-text').textContent = 'En servidor Netlify';
+  document.getElementById('airtable-pill').textContent = '✓ En servidor';
+  document.getElementById('airtable-pill').className = 'status-pill configured';
   const shOk = !!config.sheetsUrl;
   document.getElementById('sheets-pill').textContent = shOk ? '✓ Configurado' : 'No configurado';
   document.getElementById('sheets-pill').className = 'status-pill ' + (shOk?'configured':'missing');
 }
 function checkSendKey() {
-  document.getElementById('send-no-key').style.display = (config.apiKey && config.fromEmail) ? 'none' : 'block';
+  document.getElementById('send-no-key').style.display = 'none'; // Keys en servidor
 }
 
 // ── Badges ──
@@ -939,21 +911,13 @@ function saveTemplates(){
 
 // ── Config ──
 function loadConfigUI(){
-  document.getElementById('cfg-apikey').value=config.apiKey||'';
   document.getElementById('cfg-from-email').value=config.fromEmail||'';
   document.getElementById('cfg-from-name').value=config.fromName||'';
-  document.getElementById('cfg-at-token').value=config.atToken||'';
-  document.getElementById('cfg-at-base').value=config.atBase||'';
-  document.getElementById('cfg-at-table').value=config.atTable||'';
   document.getElementById('cfg-sheets-url').value=config.sheetsUrl||'';
 }
 function saveConfig(){
-  config.apiKey=document.getElementById('cfg-apikey').value.trim();
   config.fromEmail=document.getElementById('cfg-from-email').value.trim();
   config.fromName=document.getElementById('cfg-from-name').value.trim();
-  config.atToken=document.getElementById('cfg-at-token').value.trim();
-  config.atBase=document.getElementById('cfg-at-base').value.trim();
-  config.atTable=document.getElementById('cfg-at-table').value.trim();
   config.sheetsUrl=document.getElementById('cfg-sheets-url').value.trim();
   saveCfg(); updateApiStatus(); toast('Configuración guardada');
 }
@@ -964,11 +928,11 @@ function toggleKeyVisible(inputId, iconId){
 
 async function testResend(){
   const r=document.getElementById('test-result');
-  if(!config.apiKey){r.innerHTML='<span style="color:var(--red)">✗ Primero guardá la API Key</span>';return;}
-  if(!config.fromEmail){r.innerHTML='<span style="color:var(--red)">✗ Completá el email remitente</span>';return;}
+  // Keys en servidor — solo verificar que la función responde
   r.innerHTML='<span style="color:var(--accent-light)">Probando...</span>';
   try {
-    const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:config.apiKey,from:`${config.fromName||'Panel'} <${config.fromEmail}>`,to:[config.fromEmail],subject:'✓ Prueba de conexión',text:'Conexión funcionando correctamente.'})});
+    const testEmail = config.fromEmail || 'test@menteactiva.com.ar';
+    const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:[testEmail],subject:'✓ Prueba de conexión',text:'Conexión funcionando correctamente desde el Panel de Outreach.'})});
     const data=await res.json();
     if(res.ok){r.innerHTML='<span style="color:var(--green)">✓ Conexión exitosa</span>';toast('Resend OK');}
     else{r.innerHTML=`<span style="color:var(--red)">✗ Error: ${escapeHtml(data.message||JSON.stringify(data))}</span>`;}
@@ -977,7 +941,7 @@ async function testResend(){
 
 async function testAirtable(){
   const r=document.getElementById('at-test-result');
-  if(!config.atToken||!config.atBase||!config.atTable){r.innerHTML='<span style="color:var(--red)">✗ Completá los 3 campos de Airtable</span>';return;}
+  // Keys en servidor
   r.innerHTML='<span style="color:var(--accent-light)">Probando...</span>';
   try {
     const data = await atRequest('list');
@@ -1042,9 +1006,8 @@ function prepareMessages(){
 
 // ── Send email ──
 async function sendViaResend(toEmail,toName,subject,body){
-  const fromLine=`${config.fromName||'MenteActiva'} <${config.fromEmail}>`;
   const htmlBody=`<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:#222;max-width:560px">${body.replace(/\n/g,'<br>')}</div>`;
-  const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({apiKey:config.apiKey,from:fromLine,to:[toEmail],subject,text:body,html:htmlBody})});
+  const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:[toEmail],subject,text:body,html:htmlBody})});
   const data=await res.json();
   return res.ok?{ok:true,id:data.id}:{ok:false,err:data.message||'Error desconocido'};
 }
