@@ -10,6 +10,15 @@ exports.handler = async function(event, context) {
     return { statusCode: 200, headers, body: '' };
   }
 
+  // Leer keys desde variables de entorno de Netlify
+  const apiKey = process.env.AIRTABLE_TOKEN;
+  const baseId = process.env.AIRTABLE_BASE;
+  const tableId = process.env.AIRTABLE_TABLE;
+
+  if (!apiKey || !baseId || !tableId) {
+    return { statusCode: 500, headers, body: JSON.stringify({ error: 'Variables de entorno de Airtable no configuradas en Netlify' }) };
+  }
+
   let payload;
   try {
     payload = JSON.parse(event.body || '{}');
@@ -17,11 +26,7 @@ exports.handler = async function(event, context) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: 'JSON invalido' }) };
   }
 
-  const { action, apiKey, baseId, tableId, record, recordId, records } = payload;
-
-  if (!apiKey || !baseId || !tableId) {
-    return { statusCode: 400, headers, body: JSON.stringify({ error: 'Faltan apiKey, baseId o tableId' }) };
-  }
+  const { action, record, recordId, records } = payload;
 
   const base = `https://api.airtable.com/v0/${baseId}/${tableId}`;
   const authHeaders = {
@@ -33,7 +38,6 @@ exports.handler = async function(event, context) {
     let response, data;
 
     if (action === 'list') {
-      // Listar todos los registros (paginado)
       let allRecords = [];
       let offset = null;
       do {
@@ -76,7 +80,6 @@ exports.handler = async function(event, context) {
       return { statusCode: 200, headers, body: JSON.stringify(data) };
 
     } else if (action === 'bulkCreate') {
-      // Crear múltiples registros (max 10 por request en Airtable)
       let created = [];
       for (let i = 0; i < records.length; i += 10) {
         const batch = records.slice(i, i + 10).map(r => ({ fields: r }));
@@ -96,10 +99,6 @@ exports.handler = async function(event, context) {
     }
 
   } catch (error) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: error.message })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
 };
