@@ -799,15 +799,13 @@ async function addContact() {
   if(!name){toast('Ingresá al menos el nombre',true);return;}
   const c={name,company:document.getElementById('c-company').value.trim(),type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),ig:document.getElementById('c-ig').value.trim(),fb:document.getElementById('c-fb').value.trim(),tt:document.getElementById('c-tt').value.trim(),li:document.getElementById('c-li').value.trim(),web:document.getElementById('c-web').value.trim(),loc:document.getElementById('c-loc').value.trim(),country:document.getElementById('c-country').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()};
   
-  // Guardar en Airtable si está configurado
-  if (config.atToken && config.atBase && config.atTable) {
-    try {
-      const rec = await atRequest('create', { record: contactToAirtable(c) });
-      c._atId = rec.id;
-      setSyncStatus('ok', 'Guardado en Airtable');
-    } catch(e) {
-      toast('Guardado local (Airtable: ' + e.message + ')', true);
-    }
+  // Guardar en Airtable (keys en servidor)
+  try {
+    const rec = await atRequest('create', { record: contactToAirtable(c) });
+    c._atId = rec.id;
+    setSyncStatus('ok', 'Guardado en Airtable');
+  } catch(e) {
+    toast('Guardado local. Error Airtable: ' + e.message, true);
   }
   
   contacts.push(c);
@@ -829,14 +827,14 @@ function importCSV(e) {
       newContacts.push({name:p[0],company:p[1]||'',type:p[2]||'',email:p[3]||'',wa:p[4]||'',ig:p[5]||'',fb:p[6]||'',tt:p[7]||'',li:p[8]||'',web:p[9]||'',loc:p[10]||'',country:p[11]||'',channel:p[12]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
     });
     
-    // Bulk create en Airtable si está configurado
-    if (config.atToken && config.atBase && config.atTable && newContacts.length > 0) {
+    // Bulk create en Airtable (keys en servidor)
+    if (newContacts.length > 0) {
       try {
         const result = await atRequest('bulkCreate', { records: newContacts.map(contactToAirtable) });
         result.records.forEach((rec, i) => { if(newContacts[i]) newContacts[i]._atId = rec.id; });
-        setSyncStatus('ok', 'Importado a Airtable');
+        setSyncStatus('ok', 'Sincronizado con Airtable');
       } catch(e) {
-        toast('Importado local (Airtable: ' + e.message + ')', true);
+        toast('Guardado local. Error Airtable: ' + e.message, true);
       }
     }
     
