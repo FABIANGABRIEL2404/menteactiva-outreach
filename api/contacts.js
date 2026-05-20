@@ -2,14 +2,15 @@
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
-let client;
 
+// Patrón correcto para serverless — nueva conexión por invocación
 async function getDB() {
-  if (!client) {
-    client = new MongoClient(uri);
-    await client.connect();
-  }
-  return client.db('menteactiva');
+  const client = new MongoClient(uri, {
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10000,
+  });
+  await client.connect();
+  return { client, db: client.db('menteactiva') };
 }
 
 export default async function handler(req, res) {
@@ -22,29 +23,27 @@ export default async function handler(req, res) {
 
   const { action, contacts, contact, id } = req.body;
 
+  let client;
   try {
-    const db = await getDB();
-    const col = db.collection('contacts');
+    const conn = await getDB();
+    client = conn.client;
+    const col = conn.db.collection('contacts');
 
     if (action === 'load') {
-      const data = await col.find({}).toArray();
+      const data = await col.find({}, { projection: { _id: 0 } }).toArray();
       return res.status(200).json({ contacts: data });
 
     } else if (action === 'save') {
-      // Guardar lista completa (reemplazar todo)
       await col.deleteMany({});
       if (contacts && contacts.length > 0) {
-        await col.insertMany(contacts);
+        const clean = contacts.map(c => { const { _id, ...rest } = c; return rest; });
+        await col.insertMany(clean);
       }
       return res.status(200).json({ ok: true, saved: (contacts||[]).length });
 
     } else if (action === 'add') {
-      const result = await col.insertOne(contact);
-      return res.status(200).json({ ok: true, id: result.insertedId });
-
-    } else if (action === 'delete') {
-      const { ObjectId } = await import('mongodb');
-      await col.deleteOne({ _id: new ObjectId(id) });
+      const { _id, ...clean } = contact;
+      await col.insertOne(clean);
       return res.status(200).json({ ok: true });
 
     } else {
@@ -53,5 +52,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     return res.status(500).json({ error: error.message });
+  } finally {
+    if (client) await client.close();
   }
 }
