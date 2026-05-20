@@ -17,7 +17,6 @@
     --pink:#f472b6;--pink-bg:#2a0f20;
     --radius:10px;--radius-sm:6px;
   }
-  
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
   a{color:var(--accent-light);text-decoration:none}
@@ -576,7 +575,7 @@ const defaultTpls = {
 // ── Netlify Blobs Storage ──
 async function saveToCloud(contactsList) {
   try {
-    const res = await fetch('/.netlify/functions/storage', {
+    const res = await fetch('/api/contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'save', contacts: contactsList })
@@ -593,7 +592,7 @@ async function saveToCloud(contactsList) {
 }
 
 async function loadFromCloud() {
-  const res = await fetch('/.netlify/functions/storage', {
+  const res = await fetch('/api/contacts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action: 'load' })
@@ -894,7 +893,7 @@ async function testResend(){
   r.innerHTML='<span style="color:var(--accent-light)">Probando...</span>';
   try {
     const testEmail = config.fromEmail || 'test@menteactiva.com.ar';
-    const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:[testEmail],subject:'✓ Prueba de conexión',text:'Conexión funcionando correctamente desde el Panel de Outreach.'})});
+    const res=await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:[testEmail],subject:'✓ Prueba de conexión',text:'Conexión funcionando correctamente desde el Panel de Outreach.'})});
     const data=await res.json();
     if(res.ok){r.innerHTML='<span style="color:var(--green)">✓ Conexión exitosa</span>';toast('Resend OK');}
     else{r.innerHTML=`<span style="color:var(--red)">✗ Error: ${escapeHtml(data.message||JSON.stringify(data))}</span>`;}
@@ -969,7 +968,7 @@ function prepareMessages(){
 // ── Send email ──
 async function sendViaResend(toEmail,toName,subject,body){
   const htmlBody=`<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:#222;max-width:560px">${body.replace(/\n/g,'<br>')}</div>`;
-  const res=await fetch('/.netlify/functions/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:[toEmail],subject,text:body,html:htmlBody})});
+  const res=await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:[toEmail],subject,text:body,html:htmlBody})});
   const data=await res.json();
   return res.ok?{ok:true,id:data.id}:{ok:false,err:data.message||'Error desconocido'};
 }
