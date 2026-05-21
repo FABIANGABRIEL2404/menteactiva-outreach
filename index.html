@@ -133,12 +133,26 @@
   .sync-indicator.ok{color:var(--green)}
   .sync-indicator.err{color:var(--red)}
   ::-webkit-scrollbar{width:5px;height:5px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+  /* Service tabs */
+  .service-tabs{display:flex;gap:6px;padding:10px 1rem;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto}
+  .service-tab{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+  .service-tab:hover{background:var(--surface2);color:var(--text)}
+  .service-tab.active{color:var(--text)}
+  .service-tab.active.vendedoria{background:#1a1f3a;border-color:#4f6ef7;color:#818cf8}
+  .service-tab.active.asistenteIA{background:#1a2a1a;border-color:#16a34a;color:#4ade80}
+  .service-tab.active.muniasistente{background:#2a1a1a;border-color:#dc2626;color:#f87171}
+  .service-tab.active.nuevosrumbos{background:#1a2a2a;border-color:#0891b2;color:#22d3ee}
+  .service-dot{width:8px;height:8px;border-radius:50%}
+  .dot-vendedoria{background:#818cf8}
+  .dot-asistenteIA{background:#4ade80}
+  .dot-muniasistente{background:#f87171}
+  .dot-nuevosrumbos{background:#22d3ee}
 </style>
 </head>
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="logo">Outreach Pro<span>by MenteActiva</span></div>
+    <div class="logo">VendedorIA<span>Panel de Outreach</span></div>
     <button class="nav-btn active" onclick="goTo('dashboard',this)">
       <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Panel general
@@ -172,6 +186,20 @@
   </aside>
 
   <main class="main">
+    <div class="service-tabs">
+      <button class="service-tab active vendedoria" onclick="switchService('vendedoria',this)">
+        <span class="service-dot dot-vendedoria"></span>VendedorIA
+      </button>
+      <button class="service-tab asistenteIA" onclick="switchService('asistenteIA',this)">
+        <span class="service-dot dot-asistenteIA"></span>AsistenteIA
+      </button>
+      <button class="service-tab muniasistente" onclick="switchService('muniasistente',this)">
+        <span class="service-dot dot-muniasistente"></span>MuniAsistente
+      </button>
+      <button class="service-tab nuevosrumbos" onclick="switchService('nuevosrumbos',this)">
+        <span class="service-dot dot-nuevosrumbos"></span>Nuevos Rumbos
+      </button>
+    </div>
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:12px">
         <h1 id="page-title">Panel general</h1>
@@ -543,8 +571,16 @@
 <div id="toast" class="toast"></div>
 
 <script>
-const STORE = 'ma-contacts-v3';
-const TPL_STORE = 'ma-tpls-v2';
+let currentService = 'vendedoria';
+const SERVICES = {
+  vendedoria: { name: 'VendedorIA', color: '#818cf8' },
+  asistenteIA: { name: 'AsistenteIA', color: '#4ade80' },
+  muniasistente: { name: 'MuniAsistente', color: '#f87171' },
+  nuevosrumbos: { name: 'Nuevos Rumbos', color: '#22d3ee' }
+};
+
+function getStore() { return 'ma-contacts-' + currentService; }
+function getTplStore() { return 'ma-tpls-' + currentService; }
 const CFG_STORE = 'ma-config-v3';
 
 let contacts = [];
@@ -578,7 +614,7 @@ async function saveToCloud(contactsList) {
     const res = await fetch('/api/contacts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'save', contacts: contactsList })
+      body: JSON.stringify({ action: 'save', contacts: contactsList, service: currentService })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error guardando');
@@ -595,7 +631,7 @@ async function loadFromCloud() {
   const res = await fetch('/api/contacts', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'load' })
+    body: JSON.stringify({ action: 'load', service: currentService })
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Error cargando');
@@ -645,8 +681,42 @@ async function sendToSheets(contact) {
 }
 
 // ── Init ──
+async function switchService(service, btn) {
+  currentService = service;
+  // Actualizar tabs
+  document.querySelectorAll('.service-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  // Actualizar título del sidebar
+  document.querySelector('.logo').innerHTML = `${SERVICES[service].name}<span>Panel de Outreach</span>`;
+  // Resetear y recargar
+  contacts = [];
+  templates = {};
+  renderContacts(); renderDashboard(); updateNavCount();
+  // Recargar plantillas y contactos del servicio
+  try {
+    const d = localStorage.getItem(getTplStore());
+    if (d) templates = JSON.parse(d); else templates = JSON.parse(JSON.stringify(defaultTpls));
+  } catch(e) { templates = JSON.parse(JSON.stringify(defaultTpls)); }
+  loadTemplateUI();
+  setSyncStatus('syncing', 'Cargando...');
+  try {
+    contacts = await loadFromCloud();
+    saveContactsLocal(false);
+    renderContacts(); renderDashboard(); updateNavCount();
+    setSyncStatus('ok', `${SERVICES[service].name} cargado`);
+  } catch(e) {
+    try { const d = localStorage.getItem(getStore()); if (d) contacts = JSON.parse(d); } catch(e2){}
+    renderContacts(); renderDashboard(); updateNavCount();
+    setSyncStatus('err', 'Sin conexión');
+  }
+  // Limpiar mensajes preparados
+  document.getElementById('messages-preview').innerHTML = '';
+  document.getElementById('btn-send-all').style.display = 'none';
+  currentSendData = [];
+}
+
 async function loadData() {
-  try { const d = localStorage.getItem(TPL_STORE); if (d) templates = JSON.parse(d); else templates = JSON.parse(JSON.stringify(defaultTpls)); } catch(e){ templates = JSON.parse(JSON.stringify(defaultTpls)); }
+  try { const d = localStorage.getItem(getTplStore()); if (d) templates = JSON.parse(d); else templates = JSON.parse(JSON.stringify(defaultTpls)); } catch(e){ templates = JSON.parse(JSON.stringify(defaultTpls)); }
   try { const d = localStorage.getItem(CFG_STORE); if (d) config = {...config, ...JSON.parse(d)}; } catch(e){}
   loadTemplateUI(); loadConfigUI(); updateApiStatus();
   setSyncStatus('syncing', 'Cargando...');
@@ -655,7 +725,7 @@ async function loadData() {
     saveContactsLocal(false); // guardar local sin re-sync
   } catch(e) {
     // fallback a localStorage
-    try { const d = localStorage.getItem(STORE); if (d) contacts = JSON.parse(d); } catch(e2){}
+    try { const d = localStorage.getItem(getStore()); if (d) contacts = JSON.parse(d); } catch(e2){}
     setSyncStatus('err', 'Sin conexión a nube');
   }
   renderContacts(); renderDashboard(); updateNavCount();
@@ -663,11 +733,11 @@ async function loadData() {
 }
 
 function saveContactsLocal(syncCloud=true) {
-  localStorage.setItem(STORE, JSON.stringify(contacts));
+  localStorage.setItem(getStore(), JSON.stringify(contacts));
   updateNavCount();
   if (syncCloud) saveToCloud(contacts).catch(e => console.warn('Cloud save failed:', e));
 }
-function saveTpls() { localStorage.setItem(TPL_STORE, JSON.stringify(templates)); }
+function saveTpls() { localStorage.setItem(getTplStore(), JSON.stringify(templates)); }
 function saveCfg() { localStorage.setItem(CFG_STORE, JSON.stringify(config)); }
 
 // ── Toast ──
@@ -1037,7 +1107,7 @@ function exportCSV(){
 
 function clearAllData(){
   if(!confirm('⚠️ Esto borra TODOS los datos locales. ¿Continuar?'))return;
-  localStorage.removeItem(STORE); localStorage.removeItem(TPL_STORE);
+  localStorage.removeItem(getStore()); localStorage.removeItem(getTplStore());
   contacts=[]; templates=JSON.parse(JSON.stringify(defaultTpls));
   loadTemplateUI(); renderContacts(); renderDashboard(); updateNavCount();
   toast('Datos locales borrados');
