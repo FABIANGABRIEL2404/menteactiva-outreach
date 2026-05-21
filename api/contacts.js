@@ -1,9 +1,8 @@
-// api/contacts.js — Vercel Serverless Function con MongoDB
+// api/contacts.js — Vercel Serverless Function con MongoDB + servicios
 import { MongoClient } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
 
-// Patrón correcto para serverless — nueva conexión por invocación
 async function getDB() {
   const client = new MongoClient(uri, {
     serverSelectionTimeoutMS: 5000,
@@ -21,13 +20,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  const { action, contacts, contact, id } = req.body;
+  const { action, contacts, contact, id, service = 'vendedoria' } = req.body;
+
+  // Colección separada por servicio
+  const collectionName = `contacts_${service}`;
 
   let client;
   try {
     const conn = await getDB();
     client = conn.client;
-    const col = conn.db.collection('contacts');
+    const col = conn.db.collection(collectionName);
 
     if (action === 'load') {
       const data = await col.find({}, { projection: { _id: 0 } }).toArray();
