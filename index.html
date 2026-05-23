@@ -133,6 +133,7 @@
   .sync-indicator.ok{color:var(--green)}
   .sync-indicator.err{color:var(--red)}
   ::-webkit-scrollbar{width:5px;height:5px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+  /* Service tabs */
   .service-tabs{display:flex;gap:6px;padding:10px 1rem;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto}
   .service-tab{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
   .service-tab:hover{background:var(--surface2);color:var(--text)}
@@ -244,7 +245,6 @@
               <div class="form-group"><label>Rubro</label><input id="c-type" placeholder="Comercio, Profesional, Empresa..."></div>
               <div class="form-group"><label>Email</label><input id="c-email" type="email" placeholder="contacto@empresa.com"></div>
               <div class="form-group"><label>WhatsApp</label><input id="c-wa" placeholder="+54 9 223 000 0000"></div>
-              <div class="form-group"><label>Teléfono</label><input id="c-tel" placeholder="+54 223 000 0000"></div>
               <div class="form-group"><label>Instagram</label><input id="c-ig" placeholder="@usuario"></div>
               <div class="form-group"><label>Facebook</label><input id="c-fb" placeholder="facebook.com/pagina"></div>
               <div class="form-group"><label>TikTok</label><input id="c-tt" placeholder="@usuario"></div>
@@ -260,6 +260,7 @@
                   <option value="facebook">👥 Facebook</option>
                   <option value="tiktok">🎵 TikTok</option>
                   <option value="linkedin">💼 LinkedIn</option>
+                  <option value="telefono">📞 Teléfono</option>
                 </select>
               </div>
             </div>
@@ -272,7 +273,7 @@
               </button>
               <input id="csv-input" type="file" accept=".csv" style="display:none" onchange="importCSV(event)">
             </div>
-            <div style="font-size:11px;color:var(--hint);margin-top:10px">Formato CSV: <code style="font-family:'DM Mono';font-size:11px;color:var(--accent-light)">nombre, empresa, rubro, email, whatsapp, telefono, instagram, facebook, tiktok, linkedin, web, localidad, pais, canal</code></div>
+            <div style="font-size:11px;color:var(--hint);margin-top:10px">Formato CSV: <code style="font-family:'DM Mono';font-size:11px;color:var(--accent-light)">nombre, empresa, rubro, email, whatsapp, instagram, facebook, tiktok, linkedin, web, localidad, pais, canal</code></div>
           </div>
         </div>
         <div class="card">
@@ -293,6 +294,7 @@
                 <option value="facebook">👥 Facebook</option>
                 <option value="tiktok">🎵 TikTok</option>
                 <option value="linkedin">💼 LinkedIn</option>
+                <option value="telefono">📞 Teléfono</option>
               </select>
               <input id="filter-loc" placeholder="Filtrar por localidad..." oninput="renderContacts()" style="max-width:180px">
             </div>
@@ -373,6 +375,7 @@
                   <option value="email">Solo Email</option>
                   <option value="whatsapp">Solo WhatsApp (copiar manual)</option>
                   <option value="instagram">Solo Instagram (copiar manual)</option>
+                  <option value="telefono">Solo Teléfono (copiar manual)</option>
                 </select>
               </div>
             </div>
@@ -391,6 +394,7 @@
 
       <!-- CONFIGURACIÓN -->
       <div id="s-config" class="section">
+
         <div class="config-card">
           <div class="head">
             <div class="icon" style="background:var(--blue-bg)">📧</div>
@@ -474,8 +478,9 @@
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = JSON.parse(e.postData.contents);
   
+  // Crear encabezados si la hoja está vacía
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['Nombre','Rubro','Email','WhatsApp','Teléfono','Instagram','Canal','Estado','Notas','Fecha cierre']);
+    sheet.appendRow(['Nombre','Rubro','Email','WhatsApp','Instagram','Canal','Estado','Notas','Fecha cierre']);
   }
   
   sheet.appendRow([
@@ -483,7 +488,6 @@
     data.rubro || '',
     data.email || '',
     data.whatsapp || '',
-    data.telefono || '',
     data.instagram || '',
     data.canal || '',
     data.estado || '',
@@ -518,6 +522,7 @@
             </div>
           </div>
         </div>
+
       </div>
     </div>
   </main>
@@ -533,7 +538,6 @@
       <div class="form-group"><label>Rubro</label><input id="e-type"></div>
       <div class="form-group"><label>Email</label><input id="e-email" type="email"></div>
       <div class="form-group"><label>WhatsApp</label><input id="e-wa"></div>
-      <div class="form-group"><label>Teléfono</label><input id="e-tel"></div>
       <div class="form-group"><label>Instagram</label><input id="e-ig"></div>
       <div class="form-group"><label>Facebook</label><input id="e-fb"></div>
       <div class="form-group"><label>TikTok</label><input id="e-tt"></div>
@@ -549,6 +553,7 @@
           <option value="facebook">👥 Facebook</option>
           <option value="tiktok">🎵 TikTok</option>
           <option value="linkedin">💼 LinkedIn</option>
+          <option value="telefono">📞 Teléfono</option>
         </select>
       </div>
       <div class="form-group" style="grid-column:1/-1"><label>Estado</label>
@@ -607,6 +612,7 @@ const defaultTpls = {
   }
 };
 
+// ── Netlify Blobs Storage ──
 async function saveToCloud(contactsList) {
   try {
     const res = await fetch('/api/contacts', {
@@ -636,6 +642,9 @@ async function loadFromCloud() {
   return data.contacts || [];
 }
 
+// Airtable functions removed — using Netlify Blobs
+
+// ── Sync ──
 async function syncFromAirtable() {
   setSyncStatus('syncing', 'Cargando...');
   try {
@@ -657,6 +666,7 @@ function setSyncStatus(type, text) {
   el.textContent = '● ' + text;
 }
 
+// ── Google Sheets ──
 async function sendToSheets(contact) {
   if (!config.sheetsUrl) return;
   try {
@@ -666,7 +676,7 @@ async function sendToSheets(contact) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nombre: contact.name, empresa: contact.company, rubro: contact.type, email: contact.email,
-        whatsapp: contact.wa, telefono: contact.tel, instagram: contact.ig, facebook: contact.fb,
+        whatsapp: contact.wa, instagram: contact.ig, facebook: contact.fb,
         tiktok: contact.tt, linkedin: contact.li, web: contact.web,
         localidad: contact.loc, pais: contact.country, canal: contact.channel, estado: contact.status, notas: contact.notes
       })
@@ -674,14 +684,19 @@ async function sendToSheets(contact) {
   } catch(e) { console.warn('Sheets error:', e.message); }
 }
 
+// ── Init ──
 async function switchService(service, btn) {
   currentService = service;
+  // Actualizar tabs
   document.querySelectorAll('.service-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
+  // Actualizar título del sidebar
   document.querySelector('.logo').innerHTML = `${SERVICES[service].name}<span>Panel de Outreach</span>`;
+  // Resetear y recargar
   contacts = [];
   templates = {};
   renderContacts(); renderDashboard(); updateNavCount();
+  // Recargar plantillas y contactos del servicio
   try {
     const d = localStorage.getItem(getTplStore());
     if (d) templates = JSON.parse(d); else templates = JSON.parse(JSON.stringify(defaultTpls));
@@ -698,6 +713,7 @@ async function switchService(service, btn) {
     renderContacts(); renderDashboard(); updateNavCount();
     setSyncStatus('err', 'Sin conexión');
   }
+  // Limpiar mensajes preparados
   document.getElementById('messages-preview').innerHTML = '';
   document.getElementById('btn-send-all').style.display = 'none';
   currentSendData = [];
@@ -710,8 +726,9 @@ async function loadData() {
   setSyncStatus('syncing', 'Cargando...');
   try {
     contacts = await loadFromCloud();
-    saveContactsLocal(false);
+    saveContactsLocal(false); // guardar local sin re-sync
   } catch(e) {
+    // fallback a localStorage
     try { const d = localStorage.getItem(getStore()); if (d) contacts = JSON.parse(d); } catch(e2){}
     setSyncStatus('err', 'Sin conexión a nube');
   }
@@ -727,12 +744,14 @@ function saveContactsLocal(syncCloud=true) {
 function saveTpls() { localStorage.setItem(getTplStore(), JSON.stringify(templates)); }
 function saveCfg() { localStorage.setItem(CFG_STORE, JSON.stringify(config)); }
 
+// ── Toast ──
 function toast(msg, err=false) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.className = 'toast show' + (err ? ' err' : '');
   clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 3500);
 }
 
+// ── Nav ──
 const titles = { dashboard:'Panel general', contacts:'Contactos', templates:'Plantillas', send:'Enviar mensajes', config:'Configuración' };
 function goTo(s, btn) {
   document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
@@ -746,6 +765,7 @@ function goTo(s, btn) {
 }
 function updateNavCount() { document.getElementById('nav-count').textContent = contacts.length; }
 function updateApiStatus() {
+  // Keys en servidor — siempre verde si el panel cargó
   document.getElementById('api-dot').className = 'api-dot ok';
   document.getElementById('api-status-text').textContent = 'Keys en servidor Netlify';
   document.getElementById('resend-pill').textContent = '✓ En servidor';
@@ -758,9 +778,10 @@ function updateApiStatus() {
   document.getElementById('sheets-pill').className = 'status-pill ' + (shOk?'configured':'missing');
 }
 function checkSendKey() {
-  document.getElementById('send-no-key').style.display = 'none';
+  document.getElementById('send-no-key').style.display = 'none'; // Keys en servidor
 }
 
+// ── Badges ──
 function statusBadge(s) {
   const m={nuevo:'badge-nuevo',enviado1:'badge-enviado1',enviado2:'badge-enviado2',enviado3:'badge-enviado3',respondio:'badge-respondio',cerrado:'badge-cerrado'};
   const l={nuevo:'Nuevo',enviado1:'Enviado 1°',enviado2:'Seguimiento 2°',enviado3:'Último 3°',respondio:'Respondió ✓',cerrado:'Cerrado'};
@@ -773,6 +794,7 @@ function chanBadge(c) {
   if(c==='facebook') return '<span class="badge" style="background:#1a2a4a;color:#60a5fa">👥 Facebook</span>';
   if(c==='tiktok') return '<span class="badge" style="background:#1a1a2e;color:#e879f9">🎵 TikTok</span>';
   if(c==='linkedin') return '<span class="badge" style="background:#0d1f38;color:#38bdf8">💼 LinkedIn</span>';
+  if(c==='telefono') return '<span class="badge" style="background:#1a2a1a;color:#86efac">📞 Teléfono</span>';
   return '<span class="badge badge-ig">📸 Instagram</span>';
 }
 function progDots(st) {
@@ -786,6 +808,7 @@ function progDots(st) {
   }).join('')+'</div>';
 }
 
+// ── Dashboard ──
 function renderDashboard() {
   const total=contacts.length;
   const sent=contacts.filter(c=>['enviado1','enviado2','enviado3','respondio'].includes(c.status)).length;
@@ -807,6 +830,7 @@ function renderDashboard() {
   </tr>`;}).join('');
 }
 
+// ── Contacts ──
 function renderContacts() {
   const q=(document.getElementById('search')||{}).value?.toLowerCase()||'';
   const sf=(document.getElementById('filter-status')||{}).value||'';
@@ -817,12 +841,12 @@ function renderContacts() {
   if(!tb)return;
   if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">Sin contactos con ese filtro.</td></tr>';return;}
   tb.innerHTML=list.map(c=>{const ri=contacts.indexOf(c);return`<tr>
-    <td><div class="td-name">${c.name||'—'}</div><div class="td-sub">${c.company?c.company+' · ':''} ${c.email||c.wa||c.tel||''}</div></td>
+    <td><div class="td-name">${c.name||'—'}</div><div class="td-sub">${c.company?c.company+' · ':''} ${c.email||c.wa||''}</div></td>
     <td style="color:var(--muted);font-size:12px"><div>${c.type||'—'}</div><div style="font-size:11px;color:var(--hint)">${c.loc?c.loc+(c.country?', '+c.country:''):c.country||''}</div></td>
     <td>${chanBadge(c.channel||'email')}</td><td>${statusBadge(c.status||'nuevo')}</td>
     <td>${c.status==='nuevo'?'<span style="color:var(--hint);font-size:12px">—</span>':progDots(c.status)}</td>
     <td><div style="display:flex;gap:6px">
-      <button class="btn btn-sm btn-ghost" onclick="openEdit(${ri})" title="Editar"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+      <button class="btn btn-sm btn-ghost" onclick="openEdit(${ri})" title="Editar"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       <button class="btn btn-sm btn-ghost" onclick="markReplied(${ri})" title="Respondió" style="color:var(--green)"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg></button>
       <button class="btn btn-sm btn-ghost btn-danger" onclick="deleteContact(${ri})" title="Eliminar"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
     </div></td>
@@ -832,11 +856,12 @@ function renderContacts() {
 async function addContact() {
   const name=document.getElementById('c-name').value.trim();
   if(!name){toast('Ingresá al menos el nombre',true);return;}
-  const c={name,company:document.getElementById('c-company').value.trim(),type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),tel:document.getElementById('c-tel').value.trim(),ig:document.getElementById('c-ig').value.trim(),fb:document.getElementById('c-fb').value.trim(),tt:document.getElementById('c-tt').value.trim(),li:document.getElementById('c-li').value.trim(),web:document.getElementById('c-web').value.trim(),loc:document.getElementById('c-loc').value.trim(),country:document.getElementById('c-country').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()};
+  const c={name,company:document.getElementById('c-company').value.trim(),type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),ig:document.getElementById('c-ig').value.trim(),fb:document.getElementById('c-fb').value.trim(),tt:document.getElementById('c-tt').value.trim(),li:document.getElementById('c-li').value.trim(),web:document.getElementById('c-web').value.trim(),loc:document.getElementById('c-loc').value.trim(),country:document.getElementById('c-country').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()};
+  
   contacts.push(c);
-  ['c-name','c-company','c-type','c-email','c-wa','c-tel','c-ig','c-fb','c-tt','c-li','c-web','c-loc','c-country'].forEach(id=>document.getElementById(id).value='');
+  ['c-name','c-company','c-type','c-email','c-wa','c-ig','c-fb','c-tt','c-li','c-web','c-loc','c-country'].forEach(id=>document.getElementById(id).value='');
   saveContactsLocal(); renderContacts(); renderDashboard();
-  toast('Contacto agregado');
+  toast('Contacto agregado' + (c._atId ? ' y sincronizado' : ''));
 }
 
 function importCSV(e) {
@@ -849,8 +874,9 @@ function importCSV(e) {
       if(i===0&&line.toLowerCase().includes('nombre'))return;
       const p=line.split(',').map(x=>x.trim().replace(/^["']|["']$/g,''));
       if(!p[0])return;
-      newContacts.push({name:p[0],company:p[1]||'',type:p[2]||'',email:p[3]||'',wa:p[4]||'',tel:p[5]||'',ig:p[6]||'',fb:p[7]||'',tt:p[8]||'',li:p[9]||'',web:p[10]||'',loc:p[11]||'',country:p[12]||'',channel:p[13]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
+      newContacts.push({name:p[0],company:p[1]||'',type:p[2]||'',email:p[3]||'',wa:p[4]||'',ig:p[5]||'',fb:p[6]||'',tt:p[7]||'',li:p[8]||'',web:p[9]||'',loc:p[10]||'',country:p[11]||'',channel:p[12]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
     });
+    
     contacts = contacts.concat(newContacts);
     saveContactsLocal(); renderContacts(); renderDashboard();
     toast(newContacts.length + ' contactos importados');
@@ -869,9 +895,12 @@ async function markReplied(i) {
   toast(contacts[i].name+' marcado como respondió');
 }
 
+// updateContactRemote removed — saveContactsLocal handles cloud sync
+
+// ── Edit modal ──
 function openEdit(i) {
   editIdx=i; const c=contacts[i];
-  ['name','company','type','email','wa','tel','ig','fb','tt','li','web','loc','country'].forEach(f=>document.getElementById('e-'+f).value=c[f]||'');
+  ['name','company','type','email','wa','ig','fb','tt','li','web','loc','country'].forEach(f=>document.getElementById('e-'+f).value=c[f]||'');
   document.getElementById('e-chan').value=c.channel||'email';
   document.getElementById('e-status').value=c.status||'nuevo';
   document.getElementById('e-notes').value=c.notes||'';
@@ -881,17 +910,21 @@ function closeModal(){document.getElementById('edit-modal').classList.remove('op
 async function saveEdit() {
   if(editIdx<0)return; const c=contacts[editIdx];
   const prevStatus = c.status;
-  ['name','company','type','email','wa','tel','ig','fb','tt','li','web','loc','country'].forEach(f=>c[f]=document.getElementById('e-'+f).value);
+  ['name','company','type','email','wa','ig','fb','tt','li','web','loc','country'].forEach(f=>c[f]=document.getElementById('e-'+f).value);
   c.channel=document.getElementById('e-chan').value;
   c.status=document.getElementById('e-status').value;
   c.notes=document.getElementById('e-notes').value;
+  
+  // Si se marca como cerrado, enviar a Google Sheets
   if (c.status === 'cerrado' && prevStatus !== 'cerrado') {
     await sendToSheets(c);
     if (config.sheetsUrl) toast('Contacto archivado en Google Sheets');
   }
+  
   saveContactsLocal(); renderContacts(); renderDashboard(); closeModal(); toast('Contacto actualizado');
 }
 
+// ── Templates ──
 function switchChan(ch,btn){
   document.querySelectorAll('.ch-tab').forEach(x=>x.classList.remove('active')); btn.classList.add('active');
   ['email','whatsapp','instagram'].forEach(c=>document.getElementById('tpl-'+c).style.display=c===ch?'block':'none');
@@ -912,6 +945,7 @@ function saveTemplates(){
   saveTpls(); toast('Plantillas guardadas');
 }
 
+// ── Config ──
 function loadConfigUI(){
   document.getElementById('cfg-from-email').value=config.fromEmail||'';
   document.getElementById('cfg-from-name').value=config.fromName||'';
@@ -930,6 +964,7 @@ function toggleKeyVisible(inputId, iconId){
 
 async function testResend(){
   const r=document.getElementById('test-result');
+  // Keys en servidor — solo verificar que la función responde
   r.innerHTML='<span style="color:var(--accent-light)">Probando...</span>';
   try {
     const testEmail = config.fromEmail || 'test@menteactiva.com.ar';
@@ -942,6 +977,7 @@ async function testResend(){
 
 async function testAirtable(){
   const r=document.getElementById('at-test-result');
+  // Keys en servidor
   r.innerHTML='<span style="color:var(--accent-light)">Probando...</span>';
   try {
     const data = await atRequest('list');
@@ -953,8 +989,10 @@ async function testAirtable(){
   }
 }
 
+// ── Fill template ──
 function fillTpl(tpl,c){const nombre=c.name||(c.company||'');const empresa=c.company||c.name||'';return(tpl||'').replace(/{nombre}/g,nombre).replace(/{empresa}/g,empresa).replace(/{rubro}/g,c.type||'');}
 
+// ── Prepare messages ──
 function prepareMessages(){
   const sf=document.getElementById('send-filter').value;
   const sch=document.getElementById('send-chan').value;
@@ -966,7 +1004,7 @@ function prepareMessages(){
   if(!filtered.length){prev.innerHTML='<div class="card"><div class="card-body"><p style="color:var(--muted);font-size:13px">No hay contactos con ese estado.</p></div></div>';btnSendAll.style.display='none';currentSendData=[];return;}
   const step=stepMap[sf]||1;
   currentSendData=[];
-  const hasKey=true;
+  const hasKey=true; // Keys en servidor
   let emailCount=0;
   let html=`<div class="card"><div class="card-header"><h3>${filtered.length} mensajes preparados — paso ${step} de 3</h3>
     <button class="btn btn-sm btn-ghost" onclick="markAllSent('${sf}','${nextStatus[sf]}')">
@@ -990,7 +1028,7 @@ function prepareMessages(){
         </div>
         <div style="display:flex;gap:6px">
           ${ch==='email'&&hasKey?`<button class="btn btn-sm btn-green" onclick="sendSingleEmail(${i})"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Enviar</button>`:''}
-          <button class="btn btn-sm" onclick="copyMsg('msg-${i}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 0-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</button>
+          <button class="btn btn-sm" onclick="copyMsg('msg-${i}')"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</button>
         </div>
       </div>
       <div id="msg-${i}" class="msg-preview">${escapeHtml(msg)}</div>
@@ -1002,6 +1040,7 @@ function prepareMessages(){
   else{btnSendAll.style.display='none';}
 }
 
+// ── Send email ──
 async function sendViaResend(toEmail,toName,subject,body){
   const htmlBody=`<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:#222;max-width:560px">${body.replace(/\n/g,'<br>')}</div>`;
   const res=await fetch('/api/send-email',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:[toEmail],subject,text:body,html:htmlBody})});
@@ -1051,17 +1090,20 @@ async function sendAllEmails(){
 function copyMsg(id){navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>toast('Copiado'));}
 
 async function markAllSent(from,to){
+  const toUpdate = contacts.filter(c => c.status === from);
   contacts.forEach(c=>{if(c.status===from)c.status=to;});
+  // Actualizar en Airtable
   saveContactsLocal(); renderContacts(); renderDashboard();
   document.getElementById('messages-preview').innerHTML='';
   document.getElementById('btn-send-all').style.display='none';
   currentSendData=[]; toast('Estados actualizados');
 }
 
+// ── Export ──
 function exportCSV(){
   if(!contacts.length){toast('No hay contactos',true);return;}
-  const header='nombre,empresa,rubro,email,whatsapp,telefono,instagram,facebook,tiktok,linkedin,web,localidad,pais,canal,estado,notas,fecha';
-  const rows=contacts.map(c=>[c.name,c.company,c.type,c.email,c.wa,c.tel,c.ig,c.fb,c.tt,c.li,c.web,c.loc,c.country,c.channel,c.status,c.notes,c.createdAt].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const header='nombre,empresa,rubro,email,whatsapp,instagram,facebook,tiktok,linkedin,web,localidad,pais,canal,estado,notas,fecha';
+  const rows=contacts.map(c=>[c.name,c.company,c.type,c.email,c.wa,c.ig,c.fb,c.tt,c.li,c.web,c.loc,c.country,c.channel,c.status,c.notes,c.createdAt].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([[header,...rows].join('\n')],{type:'text/csv'}));
   a.download='outreach-'+new Date().toISOString().slice(0,10)+'.csv';
