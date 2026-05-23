@@ -245,6 +245,7 @@
               <div class="form-group"><label>Rubro</label><input id="c-type" placeholder="Comercio, Profesional, Empresa..."></div>
               <div class="form-group"><label>Email</label><input id="c-email" type="email" placeholder="contacto@empresa.com"></div>
               <div class="form-group"><label>WhatsApp</label><input id="c-wa" placeholder="+54 9 223 000 0000"></div>
+              <div class="form-group"><label>Teléfono</label><input id="c-phone" placeholder="+54 351 000 0000"></div>
               <div class="form-group"><label>Instagram</label><input id="c-ig" placeholder="@usuario"></div>
               <div class="form-group"><label>Facebook</label><input id="c-fb" placeholder="facebook.com/pagina"></div>
               <div class="form-group"><label>TikTok</label><input id="c-tt" placeholder="@usuario"></div>
@@ -273,7 +274,7 @@
               </button>
               <input id="csv-input" type="file" accept=".csv" style="display:none" onchange="importCSV(event)">
             </div>
-            <div style="font-size:11px;color:var(--hint);margin-top:10px">Formato CSV: <code style="font-family:'DM Mono';font-size:11px;color:var(--accent-light)">nombre, empresa, rubro, email, whatsapp, instagram, facebook, tiktok, linkedin, web, localidad, pais, canal</code></div>
+            <div style="font-size:11px;color:var(--hint);margin-top:10px">Formato CSV: <code style="font-family:'DM Mono';font-size:11px;color:var(--accent-light)">nombre, empresa, rubro, email, whatsapp, telefono, instagram, facebook, tiktok, linkedin, web, localidad, pais, canal</code></div>
           </div>
         </div>
         <div class="card">
@@ -538,6 +539,7 @@
       <div class="form-group"><label>Rubro</label><input id="e-type"></div>
       <div class="form-group"><label>Email</label><input id="e-email" type="email"></div>
       <div class="form-group"><label>WhatsApp</label><input id="e-wa"></div>
+      <div class="form-group"><label>Teléfono</label><input id="e-phone"></div>
       <div class="form-group"><label>Instagram</label><input id="e-ig"></div>
       <div class="form-group"><label>Facebook</label><input id="e-fb"></div>
       <div class="form-group"><label>TikTok</label><input id="e-tt"></div>
@@ -856,10 +858,10 @@ function renderContacts() {
 async function addContact() {
   const name=document.getElementById('c-name').value.trim();
   if(!name){toast('Ingresá al menos el nombre',true);return;}
-  const c={name,company:document.getElementById('c-company').value.trim(),type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),ig:document.getElementById('c-ig').value.trim(),fb:document.getElementById('c-fb').value.trim(),tt:document.getElementById('c-tt').value.trim(),li:document.getElementById('c-li').value.trim(),web:document.getElementById('c-web').value.trim(),loc:document.getElementById('c-loc').value.trim(),country:document.getElementById('c-country').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()};
+  const c={name,company:document.getElementById('c-company').value.trim(),type:document.getElementById('c-type').value.trim(),email:document.getElementById('c-email').value.trim(),wa:document.getElementById('c-wa').value.trim(),phone:document.getElementById('c-phone').value.trim(),ig:document.getElementById('c-ig').value.trim(),fb:document.getElementById('c-fb').value.trim(),tt:document.getElementById('c-tt').value.trim(),li:document.getElementById('c-li').value.trim(),web:document.getElementById('c-web').value.trim(),loc:document.getElementById('c-loc').value.trim(),country:document.getElementById('c-country').value.trim(),channel:document.getElementById('c-chan').value,status:'nuevo',notes:'',createdAt:new Date().toISOString()};
   
   contacts.push(c);
-  ['c-name','c-company','c-type','c-email','c-wa','c-ig','c-fb','c-tt','c-li','c-web','c-loc','c-country'].forEach(id=>document.getElementById(id).value='');
+  ['c-name','c-company','c-type','c-email','c-wa','c-phone','c-ig','c-fb','c-tt','c-li','c-web','c-loc','c-country'].forEach(id=>document.getElementById(id).value='');
   saveContactsLocal(); renderContacts(); renderDashboard();
   toast('Contacto agregado' + (c._atId ? ' y sincronizado' : ''));
 }
@@ -874,7 +876,7 @@ function importCSV(e) {
       if(i===0&&line.toLowerCase().includes('nombre'))return;
       const p=line.split(',').map(x=>x.trim().replace(/^["']|["']$/g,''));
       if(!p[0])return;
-      newContacts.push({name:p[0],company:p[1]||'',type:p[2]||'',email:p[3]||'',wa:p[4]||'',ig:p[5]||'',fb:p[6]||'',tt:p[7]||'',li:p[8]||'',web:p[9]||'',loc:p[10]||'',country:p[11]||'',channel:p[12]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
+      newContacts.push({name:p[0],company:p[1]||'',type:p[2]||'',email:p[3]||'',wa:p[4]||'',phone:p[5]||'',ig:p[6]||'',fb:p[7]||'',tt:p[8]||'',li:p[9]||'',web:p[10]||'',loc:p[11]||'',country:p[12]||'',channel:p[13]||'email',status:'nuevo',notes:'',createdAt:new Date().toISOString()});
     });
     
     contacts = contacts.concat(newContacts);
@@ -900,7 +902,7 @@ async function markReplied(i) {
 // ── Edit modal ──
 function openEdit(i) {
   editIdx=i; const c=contacts[i];
-  ['name','company','type','email','wa','ig','fb','tt','li','web','loc','country'].forEach(f=>document.getElementById('e-'+f).value=c[f]||'');
+  ['name','company','type','email','wa','phone','ig','fb','tt','li','web','loc','country'].forEach(f=>document.getElementById('e-'+f).value=c[f]||'');
   document.getElementById('e-chan').value=c.channel||'email';
   document.getElementById('e-status').value=c.status||'nuevo';
   document.getElementById('e-notes').value=c.notes||'';
@@ -910,7 +912,7 @@ function closeModal(){document.getElementById('edit-modal').classList.remove('op
 async function saveEdit() {
   if(editIdx<0)return; const c=contacts[editIdx];
   const prevStatus = c.status;
-  ['name','company','type','email','wa','ig','fb','tt','li','web','loc','country'].forEach(f=>c[f]=document.getElementById('e-'+f).value);
+  ['name','company','type','email','wa','phone','ig','fb','tt','li','web','loc','country'].forEach(f=>c[f]=document.getElementById('e-'+f).value);
   c.channel=document.getElementById('e-chan').value;
   c.status=document.getElementById('e-status').value;
   c.notes=document.getElementById('e-notes').value;
@@ -1102,8 +1104,8 @@ async function markAllSent(from,to){
 // ── Export ──
 function exportCSV(){
   if(!contacts.length){toast('No hay contactos',true);return;}
-  const header='nombre,empresa,rubro,email,whatsapp,instagram,facebook,tiktok,linkedin,web,localidad,pais,canal,estado,notas,fecha';
-  const rows=contacts.map(c=>[c.name,c.company,c.type,c.email,c.wa,c.ig,c.fb,c.tt,c.li,c.web,c.loc,c.country,c.channel,c.status,c.notes,c.createdAt].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
+  const header='nombre,empresa,rubro,email,whatsapp,telefono,instagram,facebook,tiktok,linkedin,web,localidad,pais,canal,estado,notas,fecha';
+  const rows=contacts.map(c=>[c.name,c.company,c.type,c.email,c.wa,c.phone,c.ig,c.fb,c.tt,c.li,c.web,c.loc,c.country,c.channel,c.status,c.notes,c.createdAt].map(v=>`"${(v||'').replace(/"/g,'""')}"`).join(','));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([[header,...rows].join('\n')],{type:'text/csv'}));
   a.download='outreach-'+new Date().toISOString().slice(0,10)+'.csv';
