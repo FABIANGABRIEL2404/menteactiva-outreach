@@ -262,6 +262,7 @@
                   <option value="tiktok">🎵 TikTok</option>
                   <option value="linkedin">💼 LinkedIn</option>
                   <option value="telefono">📞 Teléfono</option>
+                  <option value="web">🌐 Web</option>
                 </select>
               </div>
             </div>
@@ -296,6 +297,7 @@
                 <option value="tiktok">🎵 TikTok</option>
                 <option value="linkedin">💼 LinkedIn</option>
                 <option value="telefono">📞 Teléfono</option>
+                <option value="web">🌐 Web</option>
               </select>
               <input id="filter-loc" placeholder="Filtrar por localidad..." oninput="renderContacts()" style="max-width:180px">
             </div>
@@ -377,6 +379,7 @@
                   <option value="whatsapp">Solo WhatsApp (copiar manual)</option>
                   <option value="instagram">Solo Instagram (copiar manual)</option>
                   <option value="telefono">Solo Teléfono (copiar manual)</option>
+                  <option value="web">Solo Web (formulario manual)</option>
                 </select>
               </div>
             </div>
@@ -556,6 +559,7 @@
           <option value="tiktok">🎵 TikTok</option>
           <option value="linkedin">💼 LinkedIn</option>
           <option value="telefono">📞 Teléfono</option>
+          <option value="web">🌐 Web</option>
         </select>
       </div>
       <div class="form-group" style="grid-column:1/-1"><label>Estado</label>
@@ -797,6 +801,7 @@ function chanBadge(c) {
   if(c==='tiktok') return '<span class="badge" style="background:#1a1a2e;color:#e879f9">🎵 TikTok</span>';
   if(c==='linkedin') return '<span class="badge" style="background:#0d1f38;color:#38bdf8">💼 LinkedIn</span>';
   if(c==='telefono') return '<span class="badge" style="background:#1a2a1a;color:#86efac">📞 Teléfono</span>';
+  if(c==='web') return '<span class="badge" style="background:#1a1a2a;color:#a78bfa">🌐 Web</span>';
   return '<span class="badge badge-ig">📸 Instagram</span>';
 }
 function progDots(st) {
